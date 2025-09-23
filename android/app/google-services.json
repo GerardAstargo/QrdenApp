@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "911523405763",
+    "project_id": "qrdendb",
+    "storage_bucket": "qrdendb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:911523405763:android:c2af6f3161859d26f6a776",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjqiZX_y-yMDGN-CRJ2_W_YOTnK6eJfNc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
