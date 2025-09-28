@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import './qr_generator_screen.dart';
 import './profile_screen.dart';
 import './firestore_service.dart';
@@ -15,6 +16,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  String _welcomeMessage = 'Bienvenido';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  void _loadUserData() {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        // Use the display name if available, otherwise, it keeps the default
+        final displayName = user.displayName;
+        if (displayName != null && displayName.isNotEmpty) {
+          _welcomeMessage = 'Bienvenido, $displayName';
+        }
+      });
+    }
+  }
 
   void _navigateAndScan(ScanMode mode) {
     Navigator.of(context).push(
@@ -32,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestor de Inventario'),
+        title: Text(_welcomeMessage), // Dynamic welcome message
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
@@ -77,11 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.red,
             onPressed: () => _navigateAndScan(ScanMode.remove),
           ),
-          // Corrected Label: Changed from 'Modificar Stock' to 'Modificar Producto'
           _buildActionButton(
             context: context,
             icon: Icons.edit_note_outlined,
-            label: 'Modificar Producto', 
+            label: 'Modificar Producto',
             color: Colors.orange,
             onPressed: () => _navigateAndScan(ScanMode.update),
           ),
@@ -90,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icons.qr_code_2_sharp,
             label: 'Generar Código QR',
             color: Colors.green,
-            onPressed: _navigateToQrGenerator, 
+            onPressed: _navigateToQrGenerator,
           ),
         ],
       ),
