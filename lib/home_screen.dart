@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import './profile_screen.dart'; // Corrected import path
+import './profile_screen.dart';
 import './firestore_service.dart';
 import './product_model.dart';
 import './scanner_screen.dart';
@@ -39,37 +39,74 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          _buildActionButtons(),
+          // Reverted to the previous button design
+          _buildActionButtons(context),
+          const Divider(thickness: 1),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text('Inventario Actual', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
           Expanded(child: _buildProductList()),
         ],
       ),
     );
   }
 
-  Widget _buildActionButtons() {
+  // Restored the original, more structured button layout
+  Widget _buildActionButtons(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
         children: [
-          ElevatedButton.icon(
+          _buildActionButton(
+            context: context,
+            icon: Icons.add_to_photos_outlined,
+            label: 'Añadir Producto',
+            color: Theme.of(context).primaryColor,
             onPressed: () => _navigateAndScan(ScanMode.add),
-            icon: const Icon(Icons.add),
-            label: const Text('Añadir'),
           ),
-          ElevatedButton.icon(
+          _buildActionButton(
+            context: context,
+            icon: Icons.remove_from_queue_outlined,
+            label: 'Eliminar Producto',
+            color: Colors.red,
             onPressed: () => _navigateAndScan(ScanMode.remove),
-            icon: const Icon(Icons.remove),
-            label: const Text('Eliminar'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           ),
-          ElevatedButton.icon(
+          _buildActionButton(
+            context: context,
+            icon: Icons.edit_note_outlined,
+            label: 'Modificar Stock',
+            color: Colors.orange,
             onPressed: () => _navigateAndScan(ScanMode.update),
-            icon: const Icon(Icons.edit),
-            label: const Text('Modificar'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
           ),
         ],
+      ),
+    );
+  }
+
+  // Helper widget for creating consistent action buttons
+  Widget _buildActionButton({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Card(
+      elevation: 2.0,
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 32),
+              const SizedBox(width: 24),
+              Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -97,9 +134,10 @@ class _HomeScreenState extends State<HomeScreen> {
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               child: ListTile(
+                leading: const Icon(Icons.qr_code_scanner, size: 40),
                 title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(product.description),
-                trailing: Text('Stock: ${product.quantity}', style: const TextStyle(fontSize: 16)),
+                trailing: Text('Stock: ${product.quantity}', style: Theme.of(context).textTheme.titleMedium),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
