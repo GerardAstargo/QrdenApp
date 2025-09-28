@@ -1,17 +1,34 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import './login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  // Simplified and corrected sign-out method
   Future<void> _signOut(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    if (context.mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false, // Removes all previous routes
+    try {
+      // 1. JUST sign out. Let the StreamBuilder in main.dart handle the UI change.
+      await FirebaseAuth.instance.signOut();
+      // 2. The mounted check is good practice, but we no longer navigate from here.
+      if (!context.mounted) return;
+      // (No more Navigator.pushAndRemoveUntil)
+    } catch (e, s) {
+      // 3. Log any errors that might occur during sign-out.
+      developer.log(
+        'Error signing out',
+        name: 'com.example.myapp.auth',
+        error: e,
+        stackTrace: s,
       );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al cerrar sesión. Inténtelo de nuevo.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -31,7 +48,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 20),
             CircleAvatar(
               radius: 60,
-              backgroundColor: theme.colorScheme.primary.withAlpha(26), // <--- Deprecation fix
+              backgroundColor: theme.colorScheme.primary.withAlpha(26),
               child: Icon(
                 Icons.person_outline,
                 size: 70,

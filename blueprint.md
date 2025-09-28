@@ -35,6 +35,11 @@ Esta es una aplicación Flutter que proporciona autenticación de usuarios y una
 *   Se añadió una pantalla de perfil accesible desde un icono en la `AppBar`.
 *   La pantalla de perfil muestra el correo del usuario y un botón para cerrar sesión.
 
+### Corrección de Cierre de Sesión Persistente
+
+*   **Problema:** La sesión del usuario no se borraba correctamente al reiniciar la aplicación después de cerrar sesión.
+*   **Solución:** Se simplificó la función `_signOut` en `lib/profile_screen.dart`. Se eliminó la navegación manual y redundante (`Navigator.pushAndRemoveUntil`) para depender únicamente del `StreamBuilder` en `main.dart` como la única fuente de verdad para el estado de autenticación. Esto asegura que el estado se maneje de forma consistente y se eviten condiciones de carrera. Se añadió también un manejo de errores para diagnosticar problemas durante el cierre de sesión.
+
 ## Plan Actual
 
 *   **Objetivo:** Modernizar la interfaz de usuario de toda la aplicación y simplificar el flujo de autenticación.
