@@ -13,18 +13,18 @@ class FirestoreService {
     return null;
   }
 
-  // Updated to write with correct Firestore field names
-  Future<void> addProduct(String qrCode, String name, String description, int quantity) async {
+  // Updated to accept and save the 'precio' field
+  Future<void> addProduct(String qrCode, String name, String description, int quantity, double price) async {
     await _db.collection(collectionPath).doc(qrCode).set({
       'nombreproducto': name,
-      'categoria': description, // Using description as category for now
+      'categoria': description,
       'stock': quantity,
-      'codigo': qrCode, // Assuming the qrCode is the 'codigo'
-      'fechaingreso': FieldValue.serverTimestamp(), // Set the date on creation
+      'codigo': qrCode, 
+      'precio': price, // Saving the price
+      'fechaingreso': FieldValue.serverTimestamp(), 
     });
   }
 
-  // Updated to write with correct Firestore field names
   Future<void> updateProductQuantity(String qrCode, int newQuantity) async {
     await _db.collection(collectionPath).doc(qrCode).update({
       'stock': newQuantity,

@@ -40,12 +40,19 @@ Esta es una aplicación Flutter llamada **Qrden** que proporciona autenticación
 *   **Problema:** La sesión del usuario no se borraba correctamente al reiniciar la aplicación después de cerrar sesión.
 *   **Solución:** Se simplificó la función `_signOut` en `lib/profile_screen.dart` para depender únicamente del `StreamBuilder` en `main.dart` para manejar el estado de autenticación de forma reactiva.
 
+### Sincronización con Base de Datos Existente
+
+*   **Problema:** La aplicación y la base de datos de Firestore tenían estructuras de datos diferentes (nombres de colección y campos).
+*   **Solución:**
+    1.  Se actualizó `product_model.dart` para mapear los nombres de campo de Firestore (`nombreproducto`, `stock`, `categoria`) a los del modelo de la app (`name`, `quantity`, `description`).
+    2.  Se actualizó `firestore_service.dart` para apuntar a la colección `producto` y usar los nombres de campo correctos al escribir datos.
+
 ## Plan Actual
 
-*   **Objetivo:** Sincronizar la aplicación con la estructura real de la base de datos de Firestore.
+*   **Objetivo:** Crear una vista de detalle para mostrar toda la información de un producto y permitir el ingreso del precio.
 *   **Pasos:**
-    1.  **Ajustar el Modelo de Datos (`product_model.dart`):**
-        *   Actualizar el constructor `fromFirestore` para mapear los campos de la base de datos (`nombreproducto`, `stock`, `categoria`) a los campos del modelo de la aplicación (`name`, `quantity`, `description`).
-    2.  **Ajustar el Servicio de Base de Datos (`firestore_service.dart`):**
-        *   Cambiar el nombre de la colección de `products` a `producto`.
-        *   Actualizar las funciones `addProduct` y `updateProductQuantity` para que escriban en la base de datos usando los nombres de campo correctos (`nombreproducto`, `stock`, etc.).
+    1.  **Actualizar `product_model.dart`:** Añadir los campos `precio` (double) y `fechaingreso` (Timestamp) al modelo de datos.
+    2.  **Actualizar `scanner_screen.dart`:** Añadir un campo de texto para `precio` en el diálogo de creación de producto.
+    3.  **Actualizar `firestore_service.dart`:** Modificar la función `addProduct` para que acepte y guarde el nuevo campo `precio`.
+    4.  **Crear `product_detail_screen.dart`:** Diseñar una nueva pantalla que reciba un objeto `Product` y muestre todos sus detalles.
+    5.  **Actualizar `home_screen.dart`:** Hacer que los elementos de la lista de productos sean interactivos. Al tocar un producto, se navegará a la pantalla de detalles, pasándole la información del producto seleccionado.

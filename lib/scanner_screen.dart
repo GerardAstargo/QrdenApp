@@ -77,9 +77,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
     final details = await _showProductDetailsDialog();
     if (!mounted) return;
     if (details != null) {
-      await _firestoreService.addProduct(qrCode, details['name'], details['description'], details['quantity']);
+      // Updated to pass the new price field
+      await _firestoreService.addProduct(
+          qrCode, details['name'], details['description'], details['quantity'], details['price']);
       if (!mounted) return;
       Navigator.of(context).pop();
+    } else {
+       // If user cancels, stop processing
+      setState(() => _isProcessing = false);
     }
   }
 
@@ -110,34 +115,45 @@ class _ScannerScreenState extends State<ScannerScreen> {
       await _firestoreService.updateProductQuantity(qrCode, newQuantity);
       if (!mounted) return;
       Navigator.of(context).pop();
+    } else {
+      // If user cancels, stop processing
+      setState(() => _isProcessing = false);
     }
   }
 
-   Future<Map<String, dynamic>?> _showProductDetailsDialog() async {
+  Future<Map<String, dynamic>?> _showProductDetailsDialog() async {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
     final TextEditingController quantityController = TextEditingController();
+    final TextEditingController priceController = TextEditingController(); // Controller for price
 
     return showDialog<Map<String, dynamic>>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Añadir Producto'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre')),
-            TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Descripción')),
-            TextField(controller: quantityController, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre')),
+              TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Categoría')),
+              TextField(controller: quantityController, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number),
+              // Added price text field
+              TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+            ],
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop({
                 'name': nameController.text,
                 'description': descriptionController.text,
                 'quantity': int.tryParse(quantityController.text) ?? 0,
+                // Passing price value
+                'price': double.tryParse(priceController.text) ?? 0.0,
               });
             },
             child: const Text('Guardar'),
@@ -152,11 +168,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     return showDialog<int?>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Actualizar Cantidad'),
         content: TextField(controller: quantityController, decoration: const InputDecoration(labelText: 'Nueva Cantidad'), keyboardType: TextInputType.number),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop(int.tryParse(quantityController.text));

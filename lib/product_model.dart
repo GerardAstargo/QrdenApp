@@ -5,25 +5,30 @@ class Product {
   final String name;
   final String description;
   final int quantity;
+  final double precio; // Added precio
+  final Timestamp? fechaingreso; // Added fechaingreso, can be null
 
   Product({
     required this.qrCode,
     required this.name,
     required this.description,
     required this.quantity,
+    required this.precio,
+    this.fechaingreso,
   });
 
-  // Updated factory constructor to map Firestore fields correctly
+  // Updated factory constructor to map all Firestore fields
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Product(
-      qrCode: doc.id, // The document ID is the QR code
-      // Reads 'nombreproducto' from Firestore, assigns to 'name' in the app
+      qrCode: doc.id,
       name: data['nombreproducto'] ?? 'Nombre no disponible',
-      // Reads 'categoria' from Firestore, assigns to 'description' in the app
       description: data['categoria'] ?? 'Sin categoría',
-      // Reads 'stock' from Firestore, assigns to 'quantity' in the app
-      quantity: data['stock'] ?? 0,
+      quantity: (data['stock'] ?? 0).toInt(),
+      // Reads 'precio' from Firestore
+      precio: (data['precio'] ?? 0.0).toDouble(),
+      // Reads 'fechaingreso' from Firestore
+      fechaingreso: data['fechaingreso'] as Timestamp?,
     );
   }
 }
