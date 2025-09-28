@@ -1,79 +1,94 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import './item_provider.dart';
-import './add_edit_item_screen.dart';
+import './firestore_service.dart';
+import './product_model.dart';
+import './scanner_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final itemProvider = Provider.of<ItemProvider>(context);
+    final FirestoreService firestoreService = FirestoreService();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Qrden'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut(),
-          ),
-        ],
+        title: const Text('Gestor de Bodega'),
       ),
-      body: itemProvider.items.isEmpty
-          ? const Center(
-              child: Text('No hay artículos. ¡Añade uno!'),
-            )
-          : ListView.builder(
-              itemCount: itemProvider.items.length,
-              itemBuilder: (context, index) {
-                final item = itemProvider.items[index];
-                return Card(
-                  margin: const EdgeInsets.all(8.0),
-                  child: ListTile(
-                    leading: Image.file(
-                      item.image,
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                    ),
-                    title: Text(item.title),
-                    subtitle: Text(item.description),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => AddEditItemScreen(item: item),
-                              ),
-                            );
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            itemProvider.deleteItem(item.id);
-                          },
-                        ),
-                      ],
-                    ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => const ScannerScreen(scanMode: ScanMode.add),
+                    ));
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Añadir'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => const ScannerScreen(scanMode: ScanMode.remove),
+                    ));
+                  },
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Eliminar'),
+                   style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => const ScannerScreen(scanMode: ScanMode.update),
+                    ));
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Modificar'),
+                   style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: StreamBuilder<List<Product>>(
+              stream: firestoreService.getProducts(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No hay productos en la bodega.'));
+                }
+                final products = snapshot.data!;
+                return ListView.builder(
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    return ListTile(
+                      title: Text(product.name),
+                      subtitle: Text(product.description),
+                      trailing: Text('Cantidad: ${product.quantity}'),
+                    );
+                  },
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const AddEditItemScreen(),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
