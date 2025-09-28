@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestor de Bodega'),
+        title: const Text('Qrden'), // AppBar title changed
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
@@ -63,7 +63,7 @@ class HomeScreen extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(vertical: 6.0),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26), // <--- Deprecation fix
+                          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26),
                           child: Icon(
                             Icons.qr_code_2,
                             color: Theme.of(context).colorScheme.primary,

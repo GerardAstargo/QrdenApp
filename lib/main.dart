@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
     const Color primarySeedColor = Colors.teal;
 
     return MaterialApp(
-      title: 'Gestor de Bodega',
+      title: 'Qrden', // App title changed
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -49,9 +49,9 @@ class MyApp extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           ),
         ),
-        cardTheme: CardThemeData( // <--- THIS WAS THE FIX
+        cardTheme: CardThemeData(
           elevation: 4,
-          shadowColor: Colors.black.withAlpha(26), // <--- Deprecation fix
+          shadowColor: Colors.black.withAlpha(26),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         inputDecorationTheme: InputDecorationTheme(

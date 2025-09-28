@@ -12,25 +12,44 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String _errorMessage = '';
+  bool _isLoading = false;
+  String? _errorMessage;
 
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
       try {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
+        // The StreamBuilder in main.dart will handle navigation
       } on FirebaseAuthException catch (e) {
         setState(() {
-          _errorMessage = e.message ?? 'Ocurrió un error';
+          if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+            _errorMessage = 'Correo electrónico o contraseña incorrectos.';
+          } else {
+            _errorMessage = 'Ocurrió un error. Inténtelo de nuevo.';
+          }
         });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -41,49 +60,45 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.inventory_2_outlined,
-                  size: 80,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 16),
+                // New App Logo
                 Text(
-                  'Gestor de Bodega',
+                  'Qrden',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    color: theme.colorScheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 48),
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Correo Electrónico'),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Por favor, ingrese su correo' : null,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) => (value?.isEmpty ?? true) ? 'Ingrese su correo' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(labelText: 'Contraseña'),
                   obscureText: true,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Por favor, ingrese su contraseña' : null,
+                  validator: (value) => (value?.isEmpty ?? true) ? 'Ingrese su contraseña' : null,
                 ),
-                if (_errorMessage.isNotEmpty)
+                if (_errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
                     child: Text(
-                      _errorMessage,
+                      _errorMessage!,
                       style: const TextStyle(color: Colors.red),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _login,
-                  child: const Text('Iniciar Sesión'),
-                ),
+                const SizedBox(height: 32),
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ElevatedButton(
+                        onPressed: _login,
+                        child: const Text('Iniciar Sesión'),
+                      ),
               ],
             ),
           ),

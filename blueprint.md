@@ -2,7 +2,7 @@
 
 ## Visión General
 
-Esta es una aplicación Flutter que proporciona autenticación de usuarios y una pantalla de inicio para gestionar un inventario de bodega mediante el escaneo de códigos QR. La aplicación utiliza Firebase para la autenticación y Cloud Firestore para la base de datos.
+Esta es una aplicación Flutter llamada **Qrden** que proporciona autenticación de usuarios y una pantalla de inicio para gestionar un inventario de bodega mediante el escaneo de códigos QR. La aplicación utiliza Firebase para la autenticación y Cloud Firestore para la base de datos.
 
 ## Diseño y Características
 
@@ -42,16 +42,8 @@ Esta es una aplicación Flutter que proporciona autenticación de usuarios y una
 
 ## Plan Actual
 
-*   **Objetivo:** Modernizar la interfaz de usuario de toda la aplicación y simplificar el flujo de autenticación.
+*   **Objetivo:** Cambiar la marca de la aplicación a "Qrden".
 *   **Pasos:**
-    1.  **Rediseño General (Material 3):**
-        *   Añadir la dependencia `google_fonts`.
-        *   Actualizar `main.dart` para usar `ThemeData` con Material 3, un `ColorScheme.fromSeed`, y tipografía de `google_fonts`.
-        *   Definir estilos personalizados para `AppBar`, `ElevatedButton`, `Card`, etc.
-    2.  **Pantalla de Login:**
-        *   Eliminar el botón de registro de `lib/login_screen.dart`.
-        *   Añadir un logo y reorganizar los elementos para un diseño más limpio y atractivo.
-    3.  **Pantalla de Inicio:**
-        *   Rediseñar `lib/home_screen.dart` usando `Card`s para las acciones y para la lista de productos, aprovechando el nuevo tema.
-    4.  **Cierre de Sesión Directo:**
-        *   Modificar el botón de "Cerrar Sesión" en `lib/profile_screen.dart` para que navegue directamente a la pantalla de login después de desautenticar.
+    1.  **Actualizar Logo:** Cambiar el logo en `lib/login_screen.dart` por el texto "Qrden".
+    2.  **Actualizar Título de la App:** Cambiar el título en `lib/main.dart` a "Qrden".
+    3.  **Actualizar AppBar:** Cambiar el título en la barra de navegación de `lib/home_screen.dart` a "Qrden".
