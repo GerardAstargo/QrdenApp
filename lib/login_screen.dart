@@ -23,11 +23,20 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        // Sign in the user
+        final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
-        // The StreamBuilder in main.dart will handle navigation
+
+        final user = userCredential.user;
+        // After successful login, update the user's display name
+        if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
+          // Extract the name from the email (part before @)
+          final displayName = _emailController.text.split('@').first;
+          await user.updateDisplayName(displayName);
+        }
+
       } on FirebaseAuthException catch (e) {
         setState(() {
           if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
@@ -60,7 +69,6 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // New App Logo
                 Text(
                   'Qrden',
                   textAlign: TextAlign.center,

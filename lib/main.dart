@@ -11,6 +11,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Set authentication persistence to none
+  await FirebaseAuth.instance.setPersistence(Persistence.NONE);
+  
   runApp(const MyApp());
 }
 

@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import './firestore_service.dart';
 import './product_model.dart';
-import './edit_product_screen.dart'; // Import the new edit screen
+import './edit_product_screen.dart';
 
 enum ScanMode { add, remove, update }
 
@@ -83,13 +83,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
     if (!mounted) return;
 
     if (details != null) {
-      // Using the corrected Product model
       final newProduct = Product(
         id: qrCode,
         name: details['name'],
         description: details['description'],
         quantity: details['quantity'],
-        price: details['price'], // Corrected field name
+        price: details['price'],
         fechaIngreso: Timestamp.now(),
       );
       await _firestoreService.addProduct(newProduct);
@@ -100,6 +99,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
+  // Updated to include a confirmation dialog
   Future<void> _removeProduct(String qrCode) async {
     final existingProduct = await _firestoreService.getProductById(qrCode);
     if (!mounted) return;
@@ -109,10 +109,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
       return;
     }
 
-    await _firestoreService.deleteProduct(qrCode);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Producto eliminado')));
-    Navigator.of(context).pop();
+    final bool confirmed = await _showDeleteConfirmationDialog(existingProduct.name);
+    if (confirmed) {
+      await _firestoreService.deleteProduct(qrCode);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Producto eliminado correctamente')));
+      Navigator.of(context).pop();
+    } else {
+      // If user cancels, re-enable the scanner
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
   }
 
   Future<void> _navigateToEditScreen(String qrCode) async {
@@ -133,6 +141,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
     if (mounted && Navigator.canPop(context)) {
       Navigator.of(context).pop();
     }
+  }
+
+  // New confirmation dialog for deletion
+  Future<bool> _showDeleteConfirmationDialog(String productName) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Eliminación'),
+          content: Text('¿Estás seguro de que deseas eliminar el producto "$productName"? Esta acción no se puede deshacer.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
   }
 
   Future<Map<String, dynamic>?> _showProductDetailsDialog() async {

@@ -5,16 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  // Simplified and corrected sign-out method
   Future<void> _signOut(BuildContext context) async {
     try {
-      // 1. JUST sign out. Let the StreamBuilder in main.dart handle the UI change.
       await FirebaseAuth.instance.signOut();
-      // 2. The mounted check is good practice, but we no longer navigate from here.
       if (!context.mounted) return;
-      // (No more Navigator.pushAndRemoveUntil)
     } catch (e, s) {
-      // 3. Log any errors that might occur during sign-out.
       developer.log(
         'Error signing out',
         name: 'com.example.myapp.auth',
@@ -37,6 +32,9 @@ class ProfileScreen extends StatelessWidget {
     final User? user = FirebaseAuth.instance.currentUser;
     final theme = Theme.of(context);
 
+    // Use the display name, fallback to a generic message if null
+    final String displayName = user?.displayName ?? 'Usuario';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Perfil de Usuario'),
@@ -44,6 +42,7 @@ class ProfileScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Center content horizontally
           children: [
             const SizedBox(height: 20),
             CircleAvatar(
@@ -55,31 +54,25 @@ class ProfileScreen extends StatelessWidget {
                 color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 40),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Correo Electrónico',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      user?.email ?? 'No disponible',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+            const SizedBox(height: 24),
+            // Display the user's name prominently
+            Text(
+              displayName,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 8),
+            // Display the user's email below the name
+            Text(
+              user?.email ?? 'Correo no disponible',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const Spacer(), // Pushes the button to the bottom
             ElevatedButton.icon(
               onPressed: () => _signOut(context),
               icon: const Icon(Icons.logout),
