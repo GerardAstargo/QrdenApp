@@ -9,74 +9,84 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _isLogin = true;
-  String? _error;
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String _errorMessage = '';
 
-  void _submit() async {
-    try {
-      if (_isLogin) {
-        await _auth.signInWithEmailAndPassword(
+  Future<void> _login() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
-      } else {
-        await _auth.createUserWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _errorMessage = e.message ?? 'Ocurrió un error';
+        });
       }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _error = e.message;
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isLogin ? 'Login' : 'Registro'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            if (_error != null)
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.red),
-              ),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 80,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Gestor de Bodega',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Correo Electrónico'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Por favor, ingrese su correo' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(labelText: 'Contraseña'),
+                  obscureText: true,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Por favor, ingrese su contraseña' : null,
+                ),
+                if (_errorMessage.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Text(
+                      _errorMessage,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _login,
+                  child: const Text('Iniciar Sesión'),
+                ),
+              ],
             ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _submit,
-              child: Text(_isLogin ? 'Login' : 'Registrarse'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isLogin = !_isLogin;
-                  _error = null;
-                });
-              },
-              child: Text(_isLogin
-                  ? 'Crear una cuenta'
-                  : 'Ya tengo una cuenta'),
-            ),
-          ],
+          ),
         ),
       ),
     );

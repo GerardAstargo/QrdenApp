@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import './firestore_service.dart';
 import './product_model.dart';
 import './scanner_screen.dart';
-import './profile_screen.dart'; // Import the profile screen
+import './profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -16,7 +16,8 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Gestor de Bodega'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person),
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Perfil',
             onPressed: () {
               Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const ProfileScreen(),
@@ -27,53 +28,8 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              alignment: WrapAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const ScannerScreen(scanMode: ScanMode.add),
-                    ));
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Añadir'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const ScannerScreen(scanMode: ScanMode.remove),
-                    ));
-                  },
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Eliminar'),
-                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const ScannerScreen(scanMode: ScanMode.update),
-                    ));
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Modificar'),
-                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(),
+          _buildActions(context),
+          const Divider(height: 1),
           Expanded(
             child: StreamBuilder<List<Product>>(
               stream: firestoreService.getProducts(),
@@ -81,18 +37,49 @@ class HomeScreen extends StatelessWidget {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No hay productos en la bodega.'));
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox_outlined, size: 60, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No hay productos en la bodega.',
+                            style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
                 }
                 final products = snapshot.data!;
                 return ListView.builder(
+                  padding: const EdgeInsets.all(8.0),
                   itemCount: products.length,
                   itemBuilder: (context, index) {
                     final product = products[index];
-                    return ListTile(
-                      title: Text(product.name),
-                      subtitle: Text(product.description),
-                      trailing: Text('Cantidad: ${product.quantity}'),
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6.0),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(26), // <--- Deprecation fix
+                          child: Icon(
+                            Icons.qr_code_2,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(product.description),
+                        trailing: Text(
+                          'Cant: ${product.quantity}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
                     );
                   },
                 );
@@ -102,5 +89,61 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1.2,
+        children: [
+          _buildActionCard(
+            context,
+            icon: Icons.add_shopping_cart_outlined,
+            label: 'Añadir',
+            onTap: () => _navigateToScanner(context, ScanMode.add),
+          ),
+          _buildActionCard(
+            context,
+            icon: Icons.remove_shopping_cart_outlined,
+            label: 'Eliminar',
+            onTap: () => _navigateToScanner(context, ScanMode.remove),
+          ),
+          _buildActionCard(
+            context,
+            icon: Icons.edit_outlined,
+            label: 'Modificar',
+            onTap: () => _navigateToScanner(context, ScanMode.update),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 8),
+            Text(label, style: Theme.of(context).textTheme.labelLarge),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToScanner(BuildContext context, ScanMode mode) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => ScannerScreen(scanMode: mode),
+    ));
   }
 }
