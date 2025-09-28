@@ -11,8 +11,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // Set authentication persistence to none
-  await FirebaseAuth.instance.setPersistence(Persistence.NONE);
+  // The following line was removed as it's not supported on mobile and caused a crash.
+  // await FirebaseAuth.instance.setPersistence(Persistence.NONE);
   
   runApp(const MyApp());
 }
