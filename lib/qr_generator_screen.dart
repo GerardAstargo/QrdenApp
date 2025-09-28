@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:math';
 
 class QrGeneratorScreen extends StatefulWidget {
   const QrGeneratorScreen({super.key});
@@ -9,23 +10,21 @@ class QrGeneratorScreen extends StatefulWidget {
 }
 
 class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
-  final TextEditingController _textController = TextEditingController();
   String _qrData = '';
 
   @override
   void initState() {
     super.initState();
-    _textController.addListener(() {
-      setState(() {
-        _qrData = _textController.text;
-      });
-    });
+    _generateRandomQrCode();
   }
 
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
+  void _generateRandomQrCode() {
+    final random = Random();
+    // Generate a random 12-digit number as a string
+    final randomNumber = List.generate(12, (_) => random.nextInt(10)).join();
+    setState(() {
+      _qrData = randomNumber;
+    });
   }
 
   @override
@@ -40,39 +39,50 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                labelText: 'Introduce el texto para el QR',
-                hintText: 'Ej: PROD-00123',
-                border: OutlineInputBorder(),
-              ),
+            const SizedBox(height: 20),
+            Text(
+              'Código Generado:',
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 30),
+            Text(
+              _qrData,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
             Expanded(
               child: Center(
-                child: _qrData.isEmpty
-                    ? const Text('El código QR aparecerá aquí', style: TextStyle(color: Colors.grey))
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: QrImageView(
-                          data: _qrData,
-                          version: QrVersions.auto,
-                          size: 250.0,
-                          gapless: false, // Avoids gaps in the QR code
-                        ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        // Corrected: Replaced deprecated withOpacity with withAlpha
+                        color: Colors.grey.withAlpha(128),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
                       ),
+                    ],
+                  ),
+                  child: QrImageView(
+                    data: _qrData,
+                    version: QrVersions.auto,
+                    size: 250.0,
+                    gapless: false,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: const Text('Generar Nuevo Código'),
+              onPressed: _generateRandomQrCode,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 15),
               ),
             ),
           ],

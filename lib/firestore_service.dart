@@ -3,40 +3,42 @@ import './product_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final String collectionPath = 'producto'; // Define collection name once
+  final String _collectionName = 'producto';
 
-  Future<Product?> getProduct(String qrCode) async {
-    final doc = await _db.collection(collectionPath).doc(qrCode).get();
-    if (doc.exists) {
-      return Product.fromFirestore(doc);
+  // Stream to get all products from the collection
+  Stream<List<Product>> getProducts() {
+    return _db.collection(_collectionName).snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList());
+  }
+
+  // Get a single product by its ID
+  Future<Product?> getProductById(String id) async {
+    final snapshot = await _db.collection(_collectionName).doc(id).get();
+    if (snapshot.exists) {
+      return Product.fromFirestore(snapshot);
     }
     return null;
   }
 
-  // Updated to accept and save the 'precio' field
-  Future<void> addProduct(String qrCode, String name, String description, int quantity, double price) async {
-    await _db.collection(collectionPath).doc(qrCode).set({
-      'nombreproducto': name,
-      'categoria': description,
-      'stock': quantity,
-      'codigo': qrCode, 
-      'precio': price, // Saving the price
-      'fechaingreso': FieldValue.serverTimestamp(), 
-    });
+  // Add a new product
+  Future<void> addProduct(Product product) {
+    // Uses the new toFirestore() method from the Product model
+    return _db.collection(_collectionName).doc(product.id).set(product.toFirestore());
   }
 
-  Future<void> updateProductQuantity(String qrCode, int newQuantity) async {
-    await _db.collection(collectionPath).doc(qrCode).update({
-      'stock': newQuantity,
-    });
+  // Delete a product by its ID
+  Future<void> deleteProduct(String id) {
+    return _db.collection(_collectionName).doc(id).delete();
   }
 
-  Future<void> deleteProduct(String qrCode) async {
-    await _db.collection(collectionPath).doc(qrCode).delete();
+  // Update an entire product
+  Future<void> updateProduct(Product product) {
+    // Uses the new toFirestore() method to update the document
+    return _db.collection(_collectionName).doc(product.id).update(product.toFirestore());
   }
 
-  Stream<List<Product>> getProducts() {
-    return _db.collection(collectionPath).snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList());
+  // This method is kept for legacy or specific stock-only updates if needed elsewhere.
+  Future<void> updateStock(String id, int newQuantity) {
+    return _db.collection(_collectionName).doc(id).update({'stock': newQuantity});
   }
 }

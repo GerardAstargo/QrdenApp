@@ -34,15 +34,18 @@ class ProductDetailScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow(context, icon: Icons.qr_code, label: 'Código QR', value: product.qrCode),
+                // Corrected: product.id
+                _buildDetailRow(context, icon: Icons.qr_code, label: 'Código QR', value: product.id),
                 const Divider(),
                 _buildDetailRow(context, icon: Icons.category, label: 'Categoría', value: product.description),
                 const Divider(),
                 _buildDetailRow(context, icon: Icons.inventory_2, label: 'Stock', value: product.quantity.toString()),
                 const Divider(),
-                _buildDetailRow(context, icon: Icons.price_change, label: 'Precio', value: '\$${product.precio.toStringAsFixed(2)}'),
+                // Corrected: product.price
+                _buildDetailRow(context, icon: Icons.price_change, label: 'Precio', value: '\$${product.price.toStringAsFixed(2)}'),
                 const Divider(),
-                _buildDetailRow(context, icon: Icons.calendar_today, label: 'Fecha de Ingreso', value: _formatDate(product.fechaingreso?.toDate())),
+                // Corrected: product.fechaIngreso
+                _buildDetailRow(context, icon: Icons.calendar_today, label: 'Fecha de Ingreso', value: _formatDate(product.fechaIngreso?.toDate())),
               ],
             ),
           ),

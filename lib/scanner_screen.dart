@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import './firestore_service.dart';
 import './product_model.dart';
+import './edit_product_screen.dart'; // Import the new edit screen
 
 enum ScanMode { add, remove, update }
 
@@ -53,6 +55,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   Future<void> _handleQrCode(String qrCode) async {
+    if (!mounted) return;
+
     switch (widget.scanMode) {
       case ScanMode.add:
         await _addProduct(qrCode);
@@ -61,124 +65,116 @@ class _ScannerScreenState extends State<ScannerScreen> {
         await _removeProduct(qrCode);
         break;
       case ScanMode.update:
-        await _updateProduct(qrCode);
+        await _navigateToEditScreen(qrCode);
         break;
     }
   }
 
   Future<void> _addProduct(String qrCode) async {
-    final existingProduct = await _firestoreService.getProduct(qrCode);
+    final existingProduct = await _firestoreService.getProductById(qrCode);
     if (!mounted) return;
+
     if (existingProduct != null) {
-      _showErrorDialog('El producto ya existe.');
+      _showErrorDialog('El producto con este código QR ya existe.');
       return;
     }
 
     final details = await _showProductDetailsDialog();
     if (!mounted) return;
+
     if (details != null) {
-      // Updated to pass the new price field
-      await _firestoreService.addProduct(
-          qrCode, details['name'], details['description'], details['quantity'], details['price']);
+      // Using the corrected Product model
+      final newProduct = Product(
+        id: qrCode,
+        name: details['name'],
+        description: details['description'],
+        quantity: details['quantity'],
+        price: details['price'], // Corrected field name
+        fechaIngreso: Timestamp.now(),
+      );
+      await _firestoreService.addProduct(newProduct);
       if (!mounted) return;
       Navigator.of(context).pop();
     } else {
-       // If user cancels, stop processing
       setState(() => _isProcessing = false);
     }
   }
 
   Future<void> _removeProduct(String qrCode) async {
-    final existingProduct = await _firestoreService.getProduct(qrCode);
+    final existingProduct = await _firestoreService.getProductById(qrCode);
     if (!mounted) return;
+
     if (existingProduct == null) {
-      _showErrorDialog('El producto no existe.');
+      _showErrorDialog('El producto no existe y no puede ser eliminado.');
       return;
     }
 
     await _firestoreService.deleteProduct(qrCode);
     if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Producto eliminado')));
     Navigator.of(context).pop();
   }
 
-  Future<void> _updateProduct(String qrCode) async {
-    final existingProduct = await _firestoreService.getProduct(qrCode);
+  Future<void> _navigateToEditScreen(String qrCode) async {
+    final productToEdit = await _firestoreService.getProductById(qrCode);
     if (!mounted) return;
-    if (existingProduct == null) {
-      _showErrorDialog('El producto no existe.');
+
+    if (productToEdit == null) {
+      _showErrorDialog('El producto no existe y no puede ser modificado.');
       return;
     }
 
-    final newQuantity = await _showUpdateQuantityDialog(existingProduct);
-    if (!mounted) return;
-    if (newQuantity != null) {
-      await _firestoreService.updateProductQuantity(qrCode, newQuantity);
-      if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditProductScreen(product: productToEdit),
+      ),
+    );
+
+    if (mounted && Navigator.canPop(context)) {
       Navigator.of(context).pop();
-    } else {
-      // If user cancels, stop processing
-      setState(() => _isProcessing = false);
     }
   }
 
   Future<Map<String, dynamic>?> _showProductDetailsDialog() async {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController descriptionController = TextEditingController();
-    final TextEditingController quantityController = TextEditingController();
-    final TextEditingController priceController = TextEditingController(); // Controller for price
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final quantityController = TextEditingController();
+    final priceController = TextEditingController();
 
     return showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Añadir Producto'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre')),
-              TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Categoría')),
-              TextField(controller: quantityController, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number),
-              // Added price text field
-              TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-            ],
+        title: const Text('Añadir Nuevo Producto'),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Categoría'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                TextFormField(controller: quantityController, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                TextFormField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+              ],
+            ),
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop({
-                'name': nameController.text,
-                'description': descriptionController.text,
-                'quantity': int.tryParse(quantityController.text) ?? 0,
-                // Passing price value
-                'price': double.tryParse(priceController.text) ?? 0.0,
-              });
+              if (formKey.currentState!.validate()) {
+                Navigator.of(context).pop({
+                  'name': nameController.text,
+                  'description': descriptionController.text,
+                  'quantity': int.tryParse(quantityController.text) ?? 0,
+                  'price': double.tryParse(priceController.text) ?? 0.0,
+                });
+              }
             },
             child: const Text('Guardar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<int?> _showUpdateQuantityDialog(Product product) async {
-    final TextEditingController quantityController = TextEditingController(text: product.quantity.toString());
-
-    return showDialog<int?>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Actualizar Cantidad'),
-        content: TextField(controller: quantityController, decoration: const InputDecoration(labelText: 'Nueva Cantidad'), keyboardType: TextInputType.number),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(int.tryParse(quantityController.text));
-            },
-            child: const Text('Actualizar'),
           ),
         ],
       ),
@@ -197,7 +193,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         ],
       ),
     ).then((_) {
-      if(mounted) {
+      if (mounted) {
         setState(() => _isProcessing = false);
       }
     });

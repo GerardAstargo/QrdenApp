@@ -55,10 +55,21 @@ Esta es una aplicación Flutter llamada **Qrden** que proporciona autenticación
 *   Se corrigió un error de importación en `home_screen.dart`.
 *   Se restauró el diseño original de los botones de acción a petición del usuario.
 
+### Generador de Códigos QR
+
+*   Se añadió el paquete `qr_flutter`.
+*   Se creó una pantalla (`qr_generator_screen.dart`) que permite al usuario introducir texto y generar un QR.
+*   Se integró el acceso a esta pantalla desde un nuevo botón en la pantalla principal.
+*   Se corrigió un error de importación recurrente en `home_screen.dart`.
+
 ## Plan Actual
 
-*   **Objetivo:** Añadir la capacidad de generar códigos QR directamente desde la aplicación.
+*   **Objetivo:** Mejorar la modificación de productos y la generación de códigos QR.
 *   **Pasos:**
-    1.  **Añadir Dependencia:** Incluir el paquete `qr_flutter` en el archivo `pubspec.yaml`.
-    2.  **Crear Pantalla de Generación:** Desarrollar un nuevo archivo, `lib/qr_generator_screen.dart`, que contendrá una interfaz para que el usuario ingrese texto y vea el código QR generado en tiempo real.
-    3.  **Integrar en la Pantalla Principal:** Añadir un nuevo botón de acción en `lib/home_screen.dart` que navegue a la nueva pantalla de generación de códigos QR.
+    1.  **Modificación Completa de Productos:**
+        *   Crear una nueva pantalla `lib/edit_product_screen.dart` que contenga un formulario para editar todos los detalles de un producto.
+        *   Actualizar `lib/firestore_service.dart` con un método `updateProduct` que guarde todos los datos de un producto.
+        *   Modificar `lib/scanner_screen.dart` para que, en el modo `update`, navegue a la nueva pantalla de edición con los datos precargados.
+    2.  **Generación de Códigos QR Aleatorios:**
+        *   Modificar `lib/qr_generator_screen.dart` para que genere automáticamente un código numérico aleatorio.
+        *   Eliminar el campo de texto manual y añadir un botón para generar un nuevo código si se desea.

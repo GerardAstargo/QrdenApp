@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import './qr_generator_screen.dart'; // Corrected import path
+import './qr_generator_screen.dart';
 import './profile_screen.dart';
 import './firestore_service.dart';
 import './product_model.dart';
@@ -22,7 +22,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Navigation for the QR Generator
   void _navigateToQrGenerator() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const QrGeneratorScreen()),
@@ -78,10 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.red,
             onPressed: () => _navigateAndScan(ScanMode.remove),
           ),
+          // Corrected Label: Changed from 'Modificar Stock' to 'Modificar Producto'
           _buildActionButton(
             context: context,
             icon: Icons.edit_note_outlined,
-            label: 'Modificar Stock',
+            label: 'Modificar Producto', 
             color: Colors.orange,
             onPressed: () => _navigateAndScan(ScanMode.update),
           ),
