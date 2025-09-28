@@ -38,12 +38,14 @@ Esta es una aplicación Flutter llamada **Qrden** que proporciona autenticación
 ### Corrección de Cierre de Sesión Persistente
 
 *   **Problema:** La sesión del usuario no se borraba correctamente al reiniciar la aplicación después de cerrar sesión.
-*   **Solución:** Se simplificó la función `_signOut` en `lib/profile_screen.dart`. Se eliminó la navegación manual y redundante (`Navigator.pushAndRemoveUntil`) para depender únicamente del `StreamBuilder` en `main.dart` como la única fuente de verdad para el estado de autenticación. Esto asegura que el estado se maneje de forma consistente y se eviten condiciones de carrera. Se añadió también un manejo de errores para diagnosticar problemas durante el cierre de sesión.
+*   **Solución:** Se simplificó la función `_signOut` en `lib/profile_screen.dart` para depender únicamente del `StreamBuilder` en `main.dart` para manejar el estado de autenticación de forma reactiva.
 
 ## Plan Actual
 
-*   **Objetivo:** Cambiar la marca de la aplicación a "Qrden".
+*   **Objetivo:** Sincronizar la aplicación con la estructura real de la base de datos de Firestore.
 *   **Pasos:**
-    1.  **Actualizar Logo:** Cambiar el logo en `lib/login_screen.dart` por el texto "Qrden".
-    2.  **Actualizar Título de la App:** Cambiar el título en `lib/main.dart` a "Qrden".
-    3.  **Actualizar AppBar:** Cambiar el título en la barra de navegación de `lib/home_screen.dart` a "Qrden".
+    1.  **Ajustar el Modelo de Datos (`product_model.dart`):**
+        *   Actualizar el constructor `fromFirestore` para mapear los campos de la base de datos (`nombreproducto`, `stock`, `categoria`) a los campos del modelo de la aplicación (`name`, `quantity`, `description`).
+    2.  **Ajustar el Servicio de Base de Datos (`firestore_service.dart`):**
+        *   Cambiar el nombre de la colección de `products` a `producto`.
+        *   Actualizar las funciones `addProduct` y `updateProductQuantity` para que escriban en la base de datos usando los nombres de campo correctos (`nombreproducto`, `stock`, etc.).
