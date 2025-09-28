@@ -47,12 +47,18 @@ Esta es una aplicación Flutter llamada **Qrden** que proporciona autenticación
     1.  Se actualizó `product_model.dart` para mapear los nombres de campo de Firestore (`nombreproducto`, `stock`, `categoria`) a los del modelo de la app (`name`, `quantity`, `description`).
     2.  Se actualizó `firestore_service.dart` para apuntar a la colección `producto` y usar los nombres de campo correctos al escribir datos.
 
+### Vista de Detalles del Producto
+
+*   Se creó una pantalla de detalles para mostrar toda la información de un producto (`product_detail_screen.dart`).
+*   Se habilitó la navegación desde la lista de productos a la pantalla de detalles.
+*   Se añadió el campo `precio` al modelo y al formulario de creación.
+*   Se corrigió un error de importación en `home_screen.dart`.
+*   Se restauró el diseño original de los botones de acción a petición del usuario.
+
 ## Plan Actual
 
-*   **Objetivo:** Crear una vista de detalle para mostrar toda la información de un producto y permitir el ingreso del precio.
+*   **Objetivo:** Añadir la capacidad de generar códigos QR directamente desde la aplicación.
 *   **Pasos:**
-    1.  **Actualizar `product_model.dart`:** Añadir los campos `precio` (double) y `fechaingreso` (Timestamp) al modelo de datos.
-    2.  **Actualizar `scanner_screen.dart`:** Añadir un campo de texto para `precio` en el diálogo de creación de producto.
-    3.  **Actualizar `firestore_service.dart`:** Modificar la función `addProduct` para que acepte y guarde el nuevo campo `precio`.
-    4.  **Crear `product_detail_screen.dart`:** Diseñar una nueva pantalla que reciba un objeto `Product` y muestre todos sus detalles.
-    5.  **Actualizar `home_screen.dart`:** Hacer que los elementos de la lista de productos sean interactivos. Al tocar un producto, se navegará a la pantalla de detalles, pasándole la información del producto seleccionado.
+    1.  **Añadir Dependencia:** Incluir el paquete `qr_flutter` en el archivo `pubspec.yaml`.
+    2.  **Crear Pantalla de Generación:** Desarrollar un nuevo archivo, `lib/qr_generator_screen.dart`, que contendrá una interfaz para que el usuario ingrese texto y vea el código QR generado en tiempo real.
+    3.  **Integrar en la Pantalla Principal:** Añadir un nuevo botón de acción en `lib/home_screen.dart` que navegue a la nueva pantalla de generación de códigos QR.

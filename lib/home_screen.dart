@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import './qr_generator_screen.dart'; // Corrected import path
 import './profile_screen.dart';
 import './firestore_service.dart';
 import './product_model.dart';
@@ -21,6 +22,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Navigation for the QR Generator
+  void _navigateToQrGenerator() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const QrGeneratorScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,7 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // Reverted to the previous button design
           _buildActionButtons(context),
           const Divider(thickness: 1),
           const Padding(
@@ -52,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Restored the original, more structured button layout
   Widget _buildActionButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -79,12 +85,18 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.orange,
             onPressed: () => _navigateAndScan(ScanMode.update),
           ),
+          _buildActionButton(
+            context: context,
+            icon: Icons.qr_code_2_sharp,
+            label: 'Generar Código QR',
+            color: Colors.green,
+            onPressed: _navigateToQrGenerator, 
+          ),
         ],
       ),
     );
   }
 
-  // Helper widget for creating consistent action buttons
   Widget _buildActionButton({
     required BuildContext context,
     required IconData icon,
