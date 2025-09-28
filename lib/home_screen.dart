@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import './firestore_service.dart';
 import './product_model.dart';
 import './scanner_screen.dart';
+import './profile_screen.dart'; // Import the profile screen
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,6 +14,16 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestor de Bodega'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ));
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

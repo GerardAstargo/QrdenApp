@@ -2,7 +2,7 @@
 
 ## Visión General
 
-Esta es una aplicación Flutter que proporciona autenticación de usuarios y una pantalla de inicio. La aplicación utiliza Firebase para la autenticación y está diseñada para ser un punto de partida para aplicaciones más complejas.
+Esta es una aplicación Flutter que proporciona autenticación de usuarios y una pantalla de inicio para gestionar un inventario de bodega mediante el escaneo de códigos QR. La aplicación utiliza Firebase para la autenticación y Cloud Firestore para la base de datos.
 
 ## Diseño y Características
 
@@ -18,24 +18,26 @@ Esta es una aplicación Flutter que proporciona autenticación de usuarios y una
 *   **Navegación:**
     *   Navegación básica entre la pantalla de inicio de sesión y la pantalla de inicio.
 
-### Cambios Actuales
+### Cambios de Gestión de Inventario
 
-*   **Diseño Moderno de la Pantalla de Inicio de Sesión:**
-    *   Se implementó un diseño limpio y moderno con un fondo gris claro (`Colors.grey[200]`)
-    *   El formulario de inicio de sesión está contenido en una `Card` blanca con elevación y bordes redondeados para un efecto "flotante".
-    *   Se agregó un `FlutterLogo` en la parte superior del formulario.
-    *   El título "Bienvenido de Nuevo" tiene un estilo moderno y centrado.
-    *   Los campos de texto para correo electrónico y contraseña tienen un diseño actualizado con bordes redondeados, color de fondo y íconos de contorno.
-    *   El botón de "Iniciar Sesión" se ha estilizado para que coincida con el tema moderno.
-*   **Validaciones en Español:**
-    *   Se tradujeron todos los mensajes de error y validación del formulario al español para una mejor experiencia de usuario.
+*   **Integración de Firebase:** Autenticación con Firebase Auth y base de datos en tiempo real con Cloud Firestore.
+*   **Escaneo de Códigos QR:** Se usa `mobile_scanner` para añadir, eliminar o modificar productos mediante la cámara.
+*   **Arquitectura Limpia:**
+    *   `firestore_service.dart`: Lógica de base de datos.
+    *   `product_model.dart`: Modelo de datos para productos.
+    *   `home_screen.dart`: Vista principal con acciones y lista de inventario.
+    *   `scanner_screen.dart`: Pantalla para el escaneo de códigos QR.
+*   **Interfaz Funcional:**
+    *   La pantalla de inicio presenta los botones de **Añadir, Eliminar y Modificar**.
+    *   Muestra una lista en tiempo real del inventario de la bodega.
 
 ## Plan Actual
 
-*   **Objetivo:** Rediseñar la pantalla de inicio de sesión a un estilo más moderno y limpio, y mantener las validaciones en español.
-*   **Pasos Completados:**
-    1.  Modificar el archivo `lib/login_screen.dart`.
-    2.  Se eliminó el fondo con gradiente anterior.
-    3.  Se aplicó un nuevo diseño moderno con un fondo gris claro, una tarjeta elevada y un logotipo.
-    4.  Se actualizaron los estilos de los campos de texto y del botón.
-    5.  Se confirmaron las traducciones al español para los mensajes de validación.
+*   **Objetivo:** Añadir una pantalla de perfil de usuario y la funcionalidad para cerrar sesión.
+*   **Pasos:**
+    1.  Crear un nuevo archivo `lib/profile_screen.dart`.
+    2.  Esta pantalla mostrará el correo electrónico del usuario actual y un botón para "Cerrar Sesión".
+    3.  Añadir un `IconButton` con un icono de perfil en la `AppBar` de `lib/home_screen.dart`.
+    4.  Al presionar el icono, se navegará a la nueva `ProfileScreen`.
+    5.  Implementar la lógica para cerrar sesión usando `FirebaseAuth.instance.signOut()` en `ProfileScreen`.
+
