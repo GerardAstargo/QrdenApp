@@ -16,48 +16,44 @@ class QrGeneratorScreen extends StatefulWidget {
 class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   String _qrData = '';
   final FirestoreService _firestoreService = FirestoreService();
-  final GlobalKey _qrKey = GlobalKey(); // Key to capture the QR widget
+  final GlobalKey _qrKey = GlobalKey();
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Generate the first code when the screen loads
     _generateAndSaveQrCode();
   }
 
   Future<void> _generateAndSaveQrCode() async {
-    if (_isLoading) return; // Prevent multiple simultaneous operations
+    if (_isLoading) return;
 
     if (mounted) {
       setState(() {
         _isLoading = true;
-        _qrData = ''; // Clear previous QR while generating
+        _qrData = '';
       });
     }
 
     final random = Random();
     final randomNumber = List.generate(12, (_) => random.nextInt(10)).join();
 
-    // Set the new QR data and let the UI rebuild before capturing
     if (mounted) {
       setState(() {
         _qrData = randomNumber;
       });
     }
 
-    // Wait for the widget to be rendered
     await Future.delayed(const Duration(milliseconds: 100));
 
     try {
-      // 1. Capture the QR image
       final Uint8List? imageData = await _captureQrImage();
       if (imageData == null) {
         throw Exception("No se pudo capturar la imagen del código QR.");
       }
 
-      // 2. Save image to Storage and data to Firestore
-      await _firestoreService.saveGeneratedQrAndImage(randomNumber, imageData);
+      // Use the new service method to save the image as a Base64 string
+      await _firestoreService.saveGeneratedQrAsBase64(randomNumber, imageData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -103,12 +99,10 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 20),
-            // ... (Text widgets for code display)
-
             Expanded(
               child: Center(
                 child: RepaintBoundary(
-                  key: _qrKey, // Assign the key here
+                  key: _qrKey,
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
