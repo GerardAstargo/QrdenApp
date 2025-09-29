@@ -1,13 +1,18 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // Import Firebase Storage
 import './product_model.dart';
-import './qr_code_record_model.dart'; // Import the new model
+import './qr_code_record_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance; // Instance of Firebase Storage
+
   final String _productsCollection = 'producto';
   final String _generatedQrsCollection = 'generated_qrs';
 
-  // Stream to get all products from the collection
+  // ... (product methods remain the same) ...
+    // Stream to get all products from the collection
   Stream<List<Product>> getProducts() {
     return _db.collection(_productsCollection).snapshots().map((snapshot) =>
         snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList());
@@ -37,26 +42,42 @@ class FirestoreService {
     return _db.collection(_productsCollection).doc(product.id).update(product.toFirestore());
   }
 
-  // Method to save a newly generated QR code
-  Future<void> saveGeneratedQr(String qrCode) {
-    return _db.collection(_generatedQrsCollection).add({
+
+  // Private method to upload QR image to Firebase Storage
+  Future<String> _uploadQrImage(Uint8List imageData, String qrCode) async {
+    // Create a reference to the file in Firebase Storage
+    final ref = _storage.ref('qrcodes/$qrCode.png');
+    // Upload the data
+    final uploadTask = ref.putData(imageData);
+    // Await the completion of the upload
+    final snapshot = await uploadTask.whenComplete(() => {});
+    // Get the download URL
+    return await snapshot.ref.getDownloadURL();
+  }
+
+  // Updated method to save QR code data along with its image URL
+  Future<void> saveGeneratedQrAndImage(String qrCode, Uint8List imageData) async {
+    // 1. Upload the image and get the URL
+    final String imageUrl = await _uploadQrImage(imageData, qrCode);
+
+    // 2. Save the code and the image URL to Firestore
+    await _db.collection(_generatedQrsCollection).add({
       'code': qrCode,
+      'imageUrl': imageUrl, // Store the URL of the image
       'generatedAt': Timestamp.now(),
     });
   }
 
-  // Stream to get all generated QR codes, ordered by most recent
+  // Stream to get all generated QR codes
   Stream<List<QrCodeRecord>> getGeneratedQrs() {
     return _db
         .collection(_generatedQrsCollection)
-        .orderBy('generatedAt', descending: true) // Order by date, newest first
+        .orderBy('generatedAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => QrCodeRecord.fromFirestore(doc))
-            .toList());
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => QrCodeRecord.fromFirestore(doc)).toList());
   }
-
-  // This method is kept for legacy or specific stock-only updates if needed elsewhere.
+    // This method is kept for legacy or specific stock-only updates if needed elsewhere.
   Future<void> updateStock(String id, int newQuantity) {
     return _db.collection(_productsCollection).doc(id).update({'stock': newQuantity});
   }
