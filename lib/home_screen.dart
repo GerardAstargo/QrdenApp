@@ -6,7 +6,6 @@ import './firestore_service.dart';
 import './product_model.dart';
 import './scanner_screen.dart';
 import './product_detail_screen.dart';
-import './qr_history_screen.dart'; // Import the new history screen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,13 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToQrGenerator() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const QrGeneratorScreen()),
-    );
-  }
-
-  // Navigation to the QR History Screen
-  void _navigateToQrHistory() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const QrHistoryScreen()),
     );
   }
 
@@ -120,14 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Generar Código QR',
             color: Colors.green,
             onPressed: _navigateToQrGenerator,
-          ),
-          // New button for QR History
-          _buildActionButton(
-            context: context,
-            icon: Icons.history,
-            label: 'Historial de Códigos',
-            color: Colors.blueGrey, 
-            onPressed: _navigateToQrHistory,
           ),
         ],
       ),
