@@ -80,7 +80,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
 
     if (result == true && mounted) {
-      Navigator.pop(context);
+      final message = product == null ? 'Producto añadido con éxito' : 'Producto actualizado con éxito';
+      Navigator.pop(context, message); // Return success message
     } else {
       setState(() => _isProcessing = false);
     }
@@ -102,8 +103,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     if (confirmed == true) {
       await _firestoreService.deleteProduct(product.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Producto eliminado.'), behavior: SnackBarBehavior.floating));
-        Navigator.pop(context);
+        Navigator.pop(context, 'Producto eliminado con éxito'); // Return success message
       }
     } else {
       setState(() => _isProcessing = false);
@@ -284,8 +284,8 @@ class _ProductFormState extends State<ProductForm> {
         : FirestoreService().updateProduct(product));
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Producto ${widget.product == null ? 'añadido' : 'actualizado'}.'), behavior: SnackBarBehavior.floating));
-      Navigator.pop(context, true);
+      // REMOVED ScaffoldMessenger from here
+      Navigator.pop(context, true); // Pop with success
     }
   }
 
@@ -320,7 +320,8 @@ class _ProductFormState extends State<ProductForm> {
                           builder: (context, snapshot) {
                             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                             return DropdownButtonFormField<DocumentReference>(
-                              initialValue: _categoryRef,
+                              // Use 'value' instead of 'initialValue' for DropdownButtonFormField
+                              value: _categoryRef,
                               decoration: const InputDecoration(labelText: 'Categoría'),
                               items: snapshot.data!.map((doc) => DropdownMenuItem(value: doc.reference, child: Text((doc.data() as Map)['nombrecategoria']))).toList(),
                               onChanged: (v) => setState(() => _categoryRef = v),

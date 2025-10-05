@@ -19,7 +19,7 @@ void main() async {
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
-      child: const MyApp(),
+      child: const QrdenApp(),
     ),
   );
 }
@@ -35,8 +35,8 @@ class ThemeProvider with ChangeNotifier {
   }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class QrdenApp extends StatelessWidget {
+  const QrdenApp({super.key});
 
   @override
   Widget build(BuildContext context) {

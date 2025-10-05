@@ -60,12 +60,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
-  void _navigateAndScan(ScanMode mode) {
+  void _navigateAndScan(ScanMode mode) async { // Make function async
     _toggleFabMenu(); // Close menu before navigating
-    Navigator.of(context).push(
+    
+    // Wait for the result from the ScannerScreen.
+    final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (context) => ScannerScreen(scanMode: mode)),
     );
+
+    // After returning, if there is a result message, show it in a SnackBar.
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
+
 
   void _navigateToQrGenerator() {
     _toggleFabMenu(); // Close menu before navigating
