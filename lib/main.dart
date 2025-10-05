@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color primarySeedColor = Colors.blueAccent;
+    const Color primarySeedColor = Colors.blue;
 
     final TextTheme appTextTheme = TextTheme(
       displayLarge: GoogleFonts.oswald(fontSize: 57, fontWeight: FontWeight.bold),
@@ -50,22 +50,24 @@ class MyApp extends StatelessWidget {
       bodyMedium: GoogleFonts.openSans(fontSize: 14),
     );
 
+    final ColorScheme lightColorScheme = ColorScheme.fromSeed(
+      seedColor: primarySeedColor,
+      brightness: Brightness.light,
+    );
+
     final ThemeData lightTheme = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primarySeedColor,
-        brightness: Brightness.light,
-      ),
+      colorScheme: lightColorScheme,
       textTheme: appTextTheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: primarySeedColor,
-        foregroundColor: Colors.white,
+        backgroundColor: lightColorScheme.primary,
+        foregroundColor: lightColorScheme.onPrimary,
         titleTextStyle: GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: primarySeedColor,
+          foregroundColor: lightColorScheme.onPrimary,
+          backgroundColor: lightColorScheme.primary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           textStyle: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
@@ -73,12 +75,14 @@ class MyApp extends StatelessWidget {
       ),
     );
 
+    final ColorScheme darkColorScheme = ColorScheme.fromSeed(
+      seedColor: primarySeedColor,
+      brightness: Brightness.dark,
+    );
+
     final ThemeData darkTheme = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primarySeedColor,
-        brightness: Brightness.dark,
-      ),
+      colorScheme: darkColorScheme,
       textTheme: appTextTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.grey[900],
@@ -87,8 +91,8 @@ class MyApp extends StatelessWidget {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.black,
-          backgroundColor: primarySeedColor.shade200,
+          foregroundColor: darkColorScheme.onPrimary,
+          backgroundColor: darkColorScheme.primary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           textStyle: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
@@ -108,10 +112,6 @@ class MyApp extends StatelessWidget {
       },
     );
   }
-}
-
-extension on Color {
-  Color? get shade200 => null;
 }
 
 class AuthWrapper extends StatelessWidget {
