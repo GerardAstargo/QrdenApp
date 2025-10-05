@@ -135,6 +135,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
         return DropdownButtonFormField<DocumentReference>(
           value: _selectedCategoryRef,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Categoría',
             border: OutlineInputBorder(),
