@@ -98,7 +98,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
         quantity: details['quantity'],
         price: details['price'],
         fechaIngreso: Timestamp.now(),
-        enteredBy: details['enteredBy'], // Asignar el nombre ingresado
+        enteredBy: details['enteredBy'],
+        shelfNumber: details['shelfNumber'], // Asignar el número de estante
       );
       await _firestoreService.addProduct(newProduct);
       if (!mounted) return;
@@ -174,7 +175,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
     final nameController = TextEditingController();
     final quantityController = TextEditingController();
     final priceController = TextEditingController();
-    final enteredByController = TextEditingController(); // Controller para el nombre de quien ingresa
+    final enteredByController = TextEditingController();
+    final shelfNumberController = TextEditingController(); // Controller para el número de estante
     DocumentReference? selectedCategoryRef;
 
     return showDialog<Map<String, dynamic>>(
@@ -229,6 +231,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       TextFormField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => v!.isEmpty ? 'Requerido' : null),
                       const SizedBox(height: 8),
                       TextFormField(controller: enteredByController, decoration: const InputDecoration(labelText: 'Ingresado por'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                      const SizedBox(height: 8),
+                      TextFormField(controller: shelfNumberController, decoration: const InputDecoration(labelText: 'Número de Estante'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
                     ],
                   ),
                 ),
@@ -243,7 +247,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         'categoryRef': selectedCategoryRef,
                         'quantity': int.tryParse(quantityController.text) ?? 0,
                         'price': double.tryParse(priceController.text) ?? 0.0,
-                        'enteredBy': enteredByController.text, // Pasar el valor
+                        'enteredBy': enteredByController.text,
+                        'shelfNumber': shelfNumberController.text, // Pasar el valor
                       });
                     }
                   },

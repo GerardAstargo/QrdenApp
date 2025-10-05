@@ -19,7 +19,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late TextEditingController _nameController;
   late TextEditingController _priceController;
   late TextEditingController _quantityController;
-  late TextEditingController _enteredByController; // Controller for the employee's name
+  late TextEditingController _enteredByController;
+  late TextEditingController _shelfNumberController; // Controller for shelf number
   DocumentReference? _selectedCategoryRef;
 
   @override
@@ -28,7 +29,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _nameController = TextEditingController(text: widget.product.name);
     _priceController = TextEditingController(text: widget.product.price.toString());
     _quantityController = TextEditingController(text: widget.product.quantity.toString());
-    _enteredByController = TextEditingController(text: widget.product.enteredBy); // Initialize with existing value
+    _enteredByController = TextEditingController(text: widget.product.enteredBy);
+    _shelfNumberController = TextEditingController(text: widget.product.shelfNumber); // Initialize with existing value
     _selectedCategoryRef = widget.product.category;
   }
 
@@ -37,7 +39,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _nameController.dispose();
     _priceController.dispose();
     _quantityController.dispose();
-    _enteredByController.dispose(); // Dispose the new controller
+    _enteredByController.dispose();
+    _shelfNumberController.dispose(); // Dispose the new controller
     super.dispose();
   }
 
@@ -50,7 +53,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
         quantity: int.parse(_quantityController.text),
         price: double.parse(_priceController.text),
         fechaIngreso: widget.product.fechaIngreso,
-        enteredBy: widget.product.enteredBy, // Keep the original value
+        enteredBy: widget.product.enteredBy, // Keep original value, not editable
+        shelfNumber: _shelfNumberController.text, // Get value from the new controller
       );
 
       try {
@@ -102,14 +106,19 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 validator: (value) => value!.isEmpty ? 'Por favor, introduce el stock' : null,
               ),
               const SizedBox(height: 16),
-              // New TextFormField for the employee's name - READ ONLY
+              TextFormField(
+                controller: _shelfNumberController,
+                decoration: const InputDecoration(labelText: 'Número de Estante'),
+                validator: (value) => value!.isEmpty ? 'Por favor, introduce el número de estante' : null,
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _enteredByController,
                 readOnly: true,
                 decoration: const InputDecoration(
                   labelText: 'Ingresado por',
-                  border: InputBorder.none, // Opcional: para que parezca más texto plano
-                  filled: true, // Opcional: para darle un fondo y distinguirlo
+                  border: InputBorder.none,
+                  filled: true,
                   fillColor: Colors.black12,
                 ),
               ),
@@ -152,7 +161,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
               value: doc.reference,
               child: Text(
                 categoryName,
-                overflow: TextOverflow.ellipsis, // Esto evitará el desbordamiento
+                overflow: TextOverflow.ellipsis,
               ),
             );
           }).toList(),

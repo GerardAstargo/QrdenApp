@@ -8,6 +8,7 @@ class Product {
   final double price;
   final Timestamp? fechaIngreso;
   final String? enteredBy; // Employee who entered the product
+  final String? shelfNumber; // Shelf number where the product is located
 
   Product({
     required this.id,
@@ -17,19 +18,18 @@ class Product {
     required this.price,
     this.fechaIngreso,
     this.enteredBy,
+    this.shelfNumber,
   });
 
   // Factory constructor to create a Product from a Firestore document
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-    // Handle potential type mismatch for 'categoria'
     DocumentReference? categoryRef;
     final categoryData = data['categoria'];
     if (categoryData is DocumentReference) {
       categoryRef = categoryData;
     }
-    // If categoryData is a String (or anything else), categoryRef remains null, preventing the cast error.
 
     Timestamp? ingresoTimestamp;
     final ingresoData = data['fechaingreso'];
@@ -40,11 +40,12 @@ class Product {
     return Product(
       id: doc.id,
       name: data['nombreproducto'] ?? 'Nombre no disponible',
-      category: categoryRef, // Safely assigned
+      category: categoryRef,
       quantity: (data['stock'] ?? 0).toInt(),
       price: (data['precio'] ?? 0.0).toDouble(),
-      fechaIngreso: ingresoTimestamp, // Safely assigned
+      fechaIngreso: ingresoTimestamp,
       enteredBy: data['ingresadoPor'] as String?,
+      shelfNumber: data['numeroEstante'] as String?,
     );
   }
 
@@ -57,6 +58,7 @@ class Product {
       'precio': price,
       'fechaingreso': fechaIngreso ?? FieldValue.serverTimestamp(),
       'ingresadoPor': enteredBy,
+      'numeroEstante': shelfNumber,
     };
   }
 }
