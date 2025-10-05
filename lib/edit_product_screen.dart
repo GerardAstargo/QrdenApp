@@ -145,7 +145,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
             final categoryName = (doc.data() as Map<String, dynamic>)['nombrecategoria'] ?? 'Sin Nombre';
             return DropdownMenuItem<DocumentReference>(
               value: doc.reference,
-              child: Text(categoryName),
+              child: Text(
+                categoryName,
+                overflow: TextOverflow.ellipsis, // Esto evitará el desbordamiento
+              ),
             );
           }).toList(),
           onChanged: (value) {
