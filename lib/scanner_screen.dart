@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Importar FirebaseAuth
 import './firestore_service.dart';
 import './product_model.dart';
 import './edit_product_screen.dart';
@@ -92,9 +91,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     if (!mounted) return;
 
     if (details != null) {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      final userEmail = currentUser?.email ?? 'Desconocido';
-
       final newProduct = Product(
         id: qrCode,
         name: details['name'],
@@ -102,7 +98,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         quantity: details['quantity'],
         price: details['price'],
         fechaIngreso: Timestamp.now(),
-        enteredBy: userEmail, // Asignar el email del usuario
+        enteredBy: details['enteredBy'], // Asignar el nombre ingresado
       );
       await _firestoreService.addProduct(newProduct);
       if (!mounted) return;
@@ -178,6 +174,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     final nameController = TextEditingController();
     final quantityController = TextEditingController();
     final priceController = TextEditingController();
+    final enteredByController = TextEditingController(); // Controller para el nombre de quien ingresa
     DocumentReference? selectedCategoryRef;
 
     return showDialog<Map<String, dynamic>>(
@@ -230,6 +227,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       const SizedBox(height: 8),
                       TextFormField(controller: quantityController, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Requerido' : null),
                       TextFormField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                      const SizedBox(height: 8),
+                      TextFormField(controller: enteredByController, decoration: const InputDecoration(labelText: 'Ingresado por'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
                     ],
                   ),
                 ),
@@ -244,6 +243,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         'categoryRef': selectedCategoryRef,
                         'quantity': int.tryParse(quantityController.text) ?? 0,
                         'price': double.tryParse(priceController.text) ?? 0.0,
+                        'enteredBy': enteredByController.text, // Pasar el valor
                       });
                     }
                   },

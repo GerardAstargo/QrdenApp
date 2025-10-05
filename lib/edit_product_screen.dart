@@ -50,7 +50,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         quantity: int.parse(_quantityController.text),
         price: double.parse(_priceController.text),
         fechaIngreso: widget.product.fechaIngreso,
-        enteredBy: _enteredByController.text, // Get value from the new controller
+        enteredBy: widget.product.enteredBy, // Keep the original value
       );
 
       try {
@@ -102,11 +102,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 validator: (value) => value!.isEmpty ? 'Por favor, introduce el stock' : null,
               ),
               const SizedBox(height: 16),
-              // New TextFormField for the employee's name
+              // New TextFormField for the employee's name - READ ONLY
               TextFormField(
                 controller: _enteredByController,
-                decoration: const InputDecoration(labelText: 'Ingresado por'),
-                validator: (value) => value!.isEmpty ? 'Por favor, introduce el nombre del empleado' : null,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Ingresado por',
+                  border: InputBorder.none, // Opcional: para que parezca más texto plano
+                  filled: true, // Opcional: para darle un fondo y distinguirlo
+                  fillColor: Colors.black12,
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
