@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Product {
   final String id;
   final String name;
-  final DocumentReference? category; // Changed from description: String
+  final DocumentReference? category;
   final int quantity;
   final double price;
   final Timestamp? fechaIngreso;
@@ -11,23 +11,36 @@ class Product {
   Product({
     required this.id,
     required this.name,
-    this.category, // Changed from description
+    this.category,
     required this.quantity,
     required this.price,
     this.fechaIngreso,
   });
 
-  // Factory to create a Product from a Firestore document
+  // Ultra-robust factory to create a Product from a Firestore document
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+    DocumentReference? categoryRef;
+    final categoryData = data['categoria'];
+    if (categoryData is DocumentReference) {
+      categoryRef = categoryData;
+    }
+    // If categoryData is a String (or anything else), categoryRef remains null, preventing the cast error.
+
+    Timestamp? ingresoTimestamp;
+    final ingresoData = data['fechaingreso'];
+    if (ingresoData is Timestamp) {
+      ingresoTimestamp = ingresoData;
+    }
+
     return Product(
       id: doc.id,
       name: data['nombreproducto'] ?? 'Nombre no disponible',
-      // The 'categoria' field is now a DocumentReference
-      category: data['categoria'] as DocumentReference?,
+      category: categoryRef, // Safely assigned
       quantity: (data['stock'] ?? 0).toInt(),
       price: (data['precio'] ?? 0.0).toDouble(),
-      fechaIngreso: data['fechaingreso'] as Timestamp?,
+      fechaIngreso: ingresoTimestamp, // Safely assigned
     );
   }
 
@@ -35,7 +48,7 @@ class Product {
   Map<String, dynamic> toFirestore() {
     return {
       'nombreproducto': name,
-      'categoria': category, // Stores the reference
+      'categoria': category,
       'stock': quantity,
       'precio': price,
       'fechaingreso': fechaIngreso ?? FieldValue.serverTimestamp(),

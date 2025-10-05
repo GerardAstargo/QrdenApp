@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import './product_model.dart';
+import 'dart:async'; // Import for StreamController if needed, though not required for this fix
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -7,9 +8,24 @@ class FirestoreService {
   final String _productsCollection = 'producto';
   final String _categoriesCollection = 'categoria'; // Collection for categories
 
+  // Rewritten for maximum type safety
   Stream<List<Product>> getProducts() {
-    return _db.collection(_productsCollection).snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList());
+    final stream = _db.collection(_productsCollection).snapshots();
+
+    return stream.map((snapshot) {
+      final List<Product> products = [];
+      for (var doc in snapshot.docs) {
+        try {
+          // Explicitly call the robust factory constructor
+          products.add(Product.fromFirestore(doc));
+        } catch (e) {
+          // Log or handle the error for the specific document that failed
+          // This ensures that one bad document doesn't break the entire list
+          print('Failed to parse product with ID: ${doc.id}. Error: $e');
+        }
+      }
+      return products;
+    });
   }
 
   // Function to get the stream of categories
@@ -20,7 +36,12 @@ class FirestoreService {
   Future<Product?> getProductById(String id) async {
     final snapshot = await _db.collection(_productsCollection).doc(id).get();
     if (snapshot.exists) {
-      return Product.fromFirestore(snapshot);
+      try {
+        return Product.fromFirestore(snapshot);
+      } catch (e) {
+        print('Failed to parse product from getProductById: ${snapshot.id}. Error: $e');
+        return null;
+      }
     }
     return null;
   }
