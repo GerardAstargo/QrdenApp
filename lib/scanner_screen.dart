@@ -18,13 +18,21 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  final MobileScannerController _controller = MobileScannerController();
   bool _isProcessing = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_getTitle())),
       body: MobileScanner(
+        controller: _controller,
         onDetect: (capture) async {
           if (_isProcessing) return;
           setState(() {
@@ -191,13 +199,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           }
                           final categories = snapshot.data!;
                           return DropdownButtonFormField<DocumentReference>(
+                            isExpanded: true, // Solución #1
                             decoration: const InputDecoration(labelText: 'Categoría', border: OutlineInputBorder()),
                             hint: const Text('Selecciona una categoría'),
-                            initialValue: selectedCategoryRef, // THE FIX IS FINALLY HERE
+                            value: selectedCategoryRef,
                             items: categories.map((doc) {
+                              final categoryName = (doc.data() as Map<String, dynamic>)['nombrecategoria'] ?? 'Sin nombre';
                               return DropdownMenuItem<DocumentReference>(
                                 value: doc.reference,
-                                child: Text((doc.data() as Map<String, dynamic>)['nombrecategoria'] ?? 'Sin nombre'),
+                                child: Text(
+                                  categoryName,
+                                  overflow: TextOverflow.ellipsis, // Solución #2
+                                ),
                               );
                             }).toList(),
                             onChanged: (value) {
