@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Package to format the date
 import './product_model.dart';
+import './category_display_widget.dart'; // Import the new widget
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
@@ -34,22 +35,47 @@ class ProductDetailScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Corrected: product.id
                 _buildDetailRow(context, icon: Icons.qr_code, label: 'Código QR', value: product.id),
                 const Divider(),
-                _buildDetailRow(context, icon: Icons.category, label: 'Categoría', value: product.description),
+                // Use the CategoryDisplayWidget here
+                _buildCategoryRow(context),
                 const Divider(),
                 _buildDetailRow(context, icon: Icons.inventory_2, label: 'Stock', value: product.quantity.toString()),
                 const Divider(),
-                // Corrected: product.price
                 _buildDetailRow(context, icon: Icons.price_change, label: 'Precio', value: '\$${product.price.toStringAsFixed(2)}'),
                 const Divider(),
-                // Corrected: product.fechaIngreso
                 _buildDetailRow(context, icon: Icons.calendar_today, label: 'Fecha de Ingreso', value: _formatDate(product.fechaIngreso?.toDate())),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // A specific helper for the category row that uses a Widget
+  Widget _buildCategoryRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(Icons.category, color: Theme.of(context).primaryColor, size: 28),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Categoría',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 2),
+                // Our special widget to display the category name
+                CategoryDisplayWidget(categoryReference: product.category),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

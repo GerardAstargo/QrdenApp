@@ -6,6 +6,7 @@ import './firestore_service.dart';
 import './product_model.dart';
 import './scanner_screen.dart';
 import './product_detail_screen.dart';
+import './category_display_widget.dart'; // Import the new widget
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -152,7 +153,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          // Display a more informative error message in the UI
+          return Center(child: Text('Error al cargar productos: ${snapshot.error}'));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(child: Text('No hay productos en el inventario.'));
@@ -169,7 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListTile(
                 leading: const Icon(Icons.qr_code_scanner, size: 40),
                 title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(product.description),
+                // Use the new widget to display the category name
+                subtitle: CategoryDisplayWidget(categoryReference: product.category),
                 trailing: Text('Stock: ${product.quantity}', style: Theme.of(context).textTheme.titleMedium),
                 onTap: () {
                   Navigator.of(context).push(

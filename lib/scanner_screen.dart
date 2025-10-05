@@ -86,7 +86,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       final newProduct = Product(
         id: qrCode,
         name: details['name'],
-        description: details['description'],
+        category: details['categoryRef'],
         quantity: details['quantity'],
         price: details['price'],
         fechaIngreso: Timestamp.now(),
@@ -99,7 +99,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  // Updated to include a confirmation dialog
   Future<void> _removeProduct(String qrCode) async {
     final existingProduct = await _firestoreService.getProductById(qrCode);
     if (!mounted) return;
@@ -116,7 +115,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Producto eliminado correctamente')));
       Navigator.of(context).pop();
     } else {
-      // If user cancels, re-enable the scanner
       if (mounted) {
         setState(() => _isProcessing = false);
       }
@@ -143,74 +141,101 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  // New confirmation dialog for deletion
   Future<bool> _showDeleteConfirmationDialog(String productName) async {
     return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirmar Eliminación'),
-          content: Text('¿Estás seguro de que deseas eliminar el producto "$productName"? Esta acción no se puede deshacer.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Eliminar'),
-            ),
-          ],
-        );
-      },
-    ) ?? false;
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirmar Eliminación'),
+            content: Text('¿Estás seguro de que deseas eliminar el producto "$productName"? Esta acción no se puede deshacer.'),
+            actions: <Widget>[
+              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   Future<Map<String, dynamic>?> _showProductDetailsDialog() async {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
     final quantityController = TextEditingController();
     final priceController = TextEditingController();
+    DocumentReference? selectedCategoryRef;
 
     return showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Añadir Nuevo Producto'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
-                TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Categoría'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
-                TextFormField(controller: quantityController, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Requerido' : null),
-                TextFormField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Añadir Nuevo Producto'),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                      const SizedBox(height: 16),
+                      StreamBuilder<List<DocumentSnapshot>>(
+                        stream: _firestoreService.getCategories(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          final categories = snapshot.data!;
+                          return DropdownButtonFormField<DocumentReference>(
+                            decoration: const InputDecoration(labelText: 'Categoría', border: OutlineInputBorder()),
+                            hint: const Text('Selecciona una categoría'),
+                            initialValue: selectedCategoryRef, // THE FIX IS FINALLY HERE
+                            items: categories.map((doc) {
+                              return DropdownMenuItem<DocumentReference>(
+                                value: doc.reference,
+                                child: Text((doc.data() as Map<String, dynamic>)['nombrecategoria'] ?? 'Sin nombre'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedCategoryRef = value;
+                              });
+                            },
+                            validator: (v) => v == null ? 'Requerido' : null,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(controller: quantityController, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                      TextFormField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancelar')),
+                ElevatedButton(
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) {
+                      Navigator.of(context).pop({
+                        'name': nameController.text,
+                        'categoryRef': selectedCategoryRef,
+                        'quantity': int.tryParse(quantityController.text) ?? 0,
+                        'price': double.tryParse(priceController.text) ?? 0.0,
+                      });
+                    }
+                  },
+                  child: const Text('Guardar'),
+                ),
               ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.of(context).pop({
-                  'name': nameController.text,
-                  'description': descriptionController.text,
-                  'quantity': int.tryParse(quantityController.text) ?? 0,
-                  'price': double.tryParse(priceController.text) ?? 0.0,
-                });
-              }
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 

@@ -5,10 +5,16 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   final String _productsCollection = 'producto';
+  final String _categoriesCollection = 'categoria'; // Collection for categories
 
   Stream<List<Product>> getProducts() {
     return _db.collection(_productsCollection).snapshots().map((snapshot) =>
         snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList());
+  }
+
+  // Function to get the stream of categories
+  Stream<List<DocumentSnapshot>> getCategories() {
+    return _db.collection(_categoriesCollection).snapshots().map((snapshot) => snapshot.docs);
   }
 
   Future<Product?> getProductById(String id) async {

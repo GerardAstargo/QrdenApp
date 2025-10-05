@@ -1,17 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Product {
-  final String id;          // Standardized from qrCode
+  final String id;
   final String name;
-  final String description;   // Maps to 'categoria' in Firestore
+  final DocumentReference? category; // Changed from description: String
   final int quantity;
-  final double price;         // Standardized from precio
+  final double price;
   final Timestamp? fechaIngreso;
 
   Product({
     required this.id,
     required this.name,
-    required this.description,
+    this.category, // Changed from description
     required this.quantity,
     required this.price,
     this.fechaIngreso,
@@ -21,9 +21,10 @@ class Product {
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Product(
-      id: doc.id, // Use the document ID as the product ID
+      id: doc.id,
       name: data['nombreproducto'] ?? 'Nombre no disponible',
-      description: data['categoria'] ?? 'Sin categoría',
+      // The 'categoria' field is now a DocumentReference
+      category: data['categoria'] as DocumentReference?,
       quantity: (data['stock'] ?? 0).toInt(),
       price: (data['precio'] ?? 0.0).toDouble(),
       fechaIngreso: data['fechaingreso'] as Timestamp?,
@@ -34,10 +35,10 @@ class Product {
   Map<String, dynamic> toFirestore() {
     return {
       'nombreproducto': name,
-      'categoria': description,
+      'categoria': category, // Stores the reference
       'stock': quantity,
       'precio': price,
-      'fechaingreso': fechaIngreso ?? FieldValue.serverTimestamp(), // Set current time if null
+      'fechaingreso': fechaIngreso ?? FieldValue.serverTimestamp(),
     };
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import './product_model.dart';
 import './firestore_service.dart';
 
@@ -16,23 +17,22 @@ class _EditProductScreenState extends State<EditProductScreen> {
   final FirestoreService _firestoreService = FirestoreService();
 
   late TextEditingController _nameController;
-  late TextEditingController _descriptionController;
   late TextEditingController _priceController;
   late TextEditingController _quantityController;
+  DocumentReference? _selectedCategoryRef;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.product.name);
-    _descriptionController = TextEditingController(text: widget.product.description);
     _priceController = TextEditingController(text: widget.product.price.toString());
     _quantityController = TextEditingController(text: widget.product.quantity.toString());
+    _selectedCategoryRef = widget.product.category;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     _priceController.dispose();
     _quantityController.dispose();
     super.dispose();
@@ -40,24 +40,21 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Future<void> _saveChanges() async {
     if (_formKey.currentState!.validate()) {
-      // Create an updated product instance using the correct model
       final updatedProduct = Product(
-        id: widget.product.id, // Correctly reference 'id'
+        id: widget.product.id,
         name: _nameController.text,
-        description: _descriptionController.text,
+        category: _selectedCategoryRef, // Use the selected category reference
         quantity: int.parse(_quantityController.text),
-        price: double.parse(_priceController.text), // Correctly reference 'price'
-        fechaIngreso: widget.product.fechaIngreso, // Keep original date
+        price: double.parse(_priceController.text),
+        fechaIngreso: widget.product.fechaIngreso,
       );
 
       try {
-        // Use the updated product object to update Firestore
         await _firestoreService.updateProduct(updatedProduct);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Producto actualizado con éxito')),
         );
-        // Go back to the home screen after saving
         Navigator.of(context).popUntil((route) => route.isFirst);
       } catch (e) {
         if (!mounted) return;
@@ -85,11 +82,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 decoration: const InputDecoration(labelText: 'Nombre del Producto'),
                 validator: (value) => value!.isEmpty ? 'Por favor, introduce un nombre' : null,
               ),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Categoría'),
-                validator: (value) => value!.isEmpty ? 'Por favor, introduce una categoría' : null,
-              ),
+              const SizedBox(height: 16),
+              // Category Dropdown
+              _buildCategoryDropdown(),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _priceController,
                 decoration: const InputDecoration(labelText: 'Precio'),
@@ -111,6 +107,44 @@ class _EditProductScreenState extends State<EditProductScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    return StreamBuilder<List<DocumentSnapshot>>(
+      stream: _firestoreService.getCategories(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Text('Error al cargar categorías');
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final categories = snapshot.data ?? [];
+
+        return DropdownButtonFormField<DocumentReference>(
+          initialValue: _selectedCategoryRef, // Changed from value
+          decoration: const InputDecoration(
+            labelText: 'Categoría',
+            border: OutlineInputBorder(),
+          ),
+          hint: const Text('Selecciona una categoría'),
+          items: categories.map((doc) {
+            final categoryName = (doc.data() as Map<String, dynamic>)['nombrecategoria'] ?? 'Sin Nombre';
+            return DropdownMenuItem<DocumentReference>(
+              value: doc.reference,
+              child: Text(categoryName),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCategoryRef = value;
+            });
+          },
+          validator: (value) => value == null ? 'Por favor, selecciona una categoría' : null,
+        );
+      },
     );
   }
 }
