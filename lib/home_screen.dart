@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+
 import './qr_generator_screen.dart';
 import './profile_screen.dart';
 import './firestore_service.dart';
 import './product_model.dart';
 import './scanner_screen.dart';
 import './product_detail_screen.dart';
-import './category_display_widget.dart'; // Import the new widget
+import './category_display_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,37 +17,58 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
   String _welcomeMessage = 'Bienvenido';
+  late AnimationController _fabAnimationController;
+  bool _isFabMenuOpen = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fabAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _fabAnimationController.dispose();
+    super.dispose();
   }
 
   void _loadUserData() {
     final User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      if (mounted) {
-        setState(() {
-          final displayName = user.displayName;
-          if (displayName != null && displayName.isNotEmpty) {
-            _welcomeMessage = 'Bienvenido, $displayName';
-          }
-        });
-      }
+    if (user != null && mounted) {
+      setState(() {
+        final displayName = user.displayName;
+        _welcomeMessage = (displayName != null && displayName.isNotEmpty) ? 'Hola, $displayName' : 'Bienvenido';
+      });
     }
   }
 
+  void _toggleFabMenu() {
+    setState(() {
+      _isFabMenuOpen = !_isFabMenuOpen;
+      if (_isFabMenuOpen) {
+        _fabAnimationController.forward();
+      } else {
+        _fabAnimationController.reverse();
+      }
+    });
+  }
+
   void _navigateAndScan(ScanMode mode) {
+    _toggleFabMenu(); // Close menu before navigating
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => ScannerScreen(scanMode: mode)),
     );
   }
 
   void _navigateToQrGenerator() {
+    _toggleFabMenu(); // Close menu before navigating
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const QrGeneratorScreen()),
     );
@@ -55,93 +78,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_welcomeMessage), // Dynamic welcome message
+        title: Text(_welcomeMessage),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Perfil',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            ),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildActionButtons(context),
-          const Divider(thickness: 1),
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text('Inventario Actual', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
-          Expanded(child: _buildProductList()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        children: [
-          _buildActionButton(
-            context: context,
-            icon: Icons.add_to_photos_outlined,
-            label: 'Añadir Producto',
-            color: Theme.of(context).primaryColor,
-            onPressed: () => _navigateAndScan(ScanMode.add),
-          ),
-          _buildActionButton(
-            context: context,
-            icon: Icons.remove_from_queue_outlined,
-            label: 'Eliminar Producto',
-            color: Colors.red,
-            onPressed: () => _navigateAndScan(ScanMode.remove),
-          ),
-          _buildActionButton(
-            context: context,
-            icon: Icons.edit_note_outlined,
-            label: 'Modificar Producto',
-            color: Colors.orange,
-            onPressed: () => _navigateAndScan(ScanMode.update),
-          ),
-          _buildActionButton(
-            context: context,
-            icon: Icons.qr_code_2_sharp,
-            label: 'Generar Código QR',
-            color: Colors.green,
-            onPressed: _navigateToQrGenerator,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Card(
-      elevation: 2.0,
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-      child: InkWell(
-        onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(width: 24),
-              Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ),
-      ),
+      body: _buildProductList(),
+      floatingActionButton: _buildExpandableFab(context),
     );
   }
 
@@ -153,39 +102,126 @@ class _HomeScreenState extends State<HomeScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          // Display a more informative error message in the UI
-          return Center(child: Text('Error al cargar productos: ${snapshot.error}'));
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No hay productos en el inventario.'));
+          return const Center(
+            child: Text(
+              'Tu inventario está vacío.\n¡Añade un producto para empezar!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          );
         }
 
         final products = snapshot.data!;
-
-        return ListView.builder(
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-              child: ListTile(
-                leading: const Icon(Icons.qr_code_scanner, size: 40),
-                title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                // Use the new widget to display the category name
-                subtitle: CategoryDisplayWidget(categoryReference: product.category),
-                trailing: Text('Stock: ${product.quantity}', style: Theme.of(context).textTheme.titleMedium),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ProductDetailScreen(product: product),
+        return AnimationLimiter(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return AnimationConfiguration.staggeredList(
+                position: index,
+                duration: const Duration(milliseconds: 375),
+                child: SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(
+                    child: Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(25), // Modern way to set opacity
+                          child: Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.primary),
+                        ),
+                        title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: CategoryDisplayWidget(categoryReference: product.category),
+                        trailing: Text('Stock: ${product.quantity}', style: Theme.of(context).textTheme.titleMedium),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
+                        ),
+                      ),
                     ),
-                  );
-                },
-              ),
-            );
-          },
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
+
+  Widget _buildExpandableFab(BuildContext context) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        // Overlay to close menu
+        if (_isFabMenuOpen)
+          GestureDetector(
+            onTap: _toggleFabMenu,
+            child: Container(
+              color: Colors.black.withAlpha(128), // Modern way to set opacity
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        // FAB menu items
+        ..._buildFabMenuItems(),
+        // Main FAB
+        FloatingActionButton(
+          onPressed: _toggleFabMenu,
+          elevation: 4,
+          child: AnimatedIcon(
+            icon: AnimatedIcons.menu_close,
+            progress: _fabAnimationController,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildFabMenuItems() {
+    final actions = [
+      FabAction(icon: Icons.add_to_photos_outlined, label: 'Añadir', onPressed: () => _navigateAndScan(ScanMode.add)),
+      FabAction(icon: Icons.remove_from_queue_outlined, label: 'Eliminar', onPressed: () => _navigateAndScan(ScanMode.remove)),
+      FabAction(icon: Icons.edit_note_outlined, label: 'Modificar', onPressed: () => _navigateAndScan(ScanMode.update)),
+      FabAction(icon: Icons.qr_code_2_sharp, label: 'Generar QR', onPressed: _navigateToQrGenerator),
+    ];
+
+    return List.generate(actions.length, (index) {
+      return AnimatedBuilder(
+        animation: _fabAnimationController,
+        builder: (context, child) {
+          final bottom = 65.0 + (index * 60.0) * _fabAnimationController.value;
+          return Positioned(
+            right: 4.0,
+            bottom: bottom,
+            child: Opacity(
+              opacity: _fabAnimationController.value,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Card(elevation: 2, child: Padding(padding: const EdgeInsets.all(8.0), child: Text(actions[index].label))),
+                  const SizedBox(width: 8),
+                  FloatingActionButton.small(
+                    heroTag: null, // Important for multiple FABs
+                    onPressed: actions[index].onPressed,
+                    child: Icon(actions[index].icon),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }).reversed.toList();
+  }
+}
+
+class FabAction {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  FabAction({required this.icon, required this.label, required this.onPressed});
 }

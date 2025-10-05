@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'dart:math';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class QrGeneratorScreen extends StatefulWidget {
   const QrGeneratorScreen({super.key});
@@ -10,13 +10,11 @@ class QrGeneratorScreen extends StatefulWidget {
 }
 
 class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
-  String _qrData = ''; // Holds the data for the current QR code
+  String? _qrData;
 
-  // Function to generate a new random QR code
   void _generateQrCode() {
-    final random = Random();
-    // Generate a 12-digit random number as a string
-    final randomNumber = List.generate(12, (_) => random.nextInt(10)).join();
+    final random = '1234567890';
+    final randomNumber = List.generate(12, (index) => random[DateTime.now().microsecond % random.length]).join();
     setState(() {
       _qrData = randomNumber;
     });
@@ -24,81 +22,89 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generador de Código QR'),
-        centerTitle: true,
+        title: const Text('Generar Código QR'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Text to show the generated code
-            if (_qrData.isNotEmpty)
-              Column(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: AnimationLimiter(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: AnimationConfiguration.toStaggeredList(
+                duration: const Duration(milliseconds: 375),
+                childAnimationBuilder: (widget) => SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(child: widget),
+                ),
                 children: [
-                  const Text(
-                    'Código generado:',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _qrData,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                  Card(
+                    elevation: 2,
+                    clipBehavior: Clip.antiAlias,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+                      child: _qrData == null
+                          ? _buildPlaceholder(textTheme)
+                          : _buildQrDisplay(textTheme, _qrData!),
                     ),
+                  ),
+                  const SizedBox(height: 48),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Generar Nuevo Código'),
+                    onPressed: _generateQrCode,
                   ),
                 ],
               ),
-            const SizedBox(height: 20),
-            // QR code display area
-            Expanded(
-              child: Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: _qrData.isNotEmpty
-                        ? [
-                            BoxShadow(
-                              color: Colors.grey.withAlpha(128),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: _qrData.isEmpty
-                      ? const Center(
-                          child: Text(
-                          'Presiona el botón para generar un código',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ))
-                      : QrImageView(
-                          data: _qrData,
-                          version: QrVersions.auto,
-                          size: 250.0,
-                          gapless: false,
-                        ),
-                ),
-              ),
             ),
-            const SizedBox(height: 20),
-            // Button to generate a new code
-            ElevatedButton.icon(
-              icon: const Icon(Icons.refresh),
-              label: const Text('Generar Nuevo Código'),
-              onPressed: _generateQrCode,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(TextTheme textTheme) {
+    return SizedBox(
+      key: const ValueKey('placeholder'),
+      height: 300,
+      child: Center(
+        child: Text(
+          'Presiona "Generar" para crear un QR',
+          style: textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQrDisplay(TextTheme textTheme, String data) {
+    return Container(
+      key: ValueKey(data), // Use data as key to trigger animation
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        children: [
+          Text(
+            'Código Generado',
+            style: textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            data,
+            style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          QrImageView(
+            data: data,
+            version: QrVersions.auto,
+            size: 200.0,
+            gapless: false,
+          ),
+        ],
       ),
     );
   }

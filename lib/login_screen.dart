@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,41 +17,37 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   Future<void> _login() async {
-    if (_formKey.currentState?.validate() ?? false) {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      final user = userCredential.user;
+      if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
+        final displayName = _emailController.text.split('@').first;
+        await user.updateDisplayName(displayName);
+      }
+    } on FirebaseAuthException {
       setState(() {
-        _isLoading = true;
-        _errorMessage = null;
+        _errorMessage = 'Correo o contraseña incorrectos.';
       });
-
-      try {
-        // Sign in the user
-        final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-
-        final user = userCredential.user;
-        // After successful login, update the user's display name
-        if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
-          // Extract the name from the email (part before @)
-          final displayName = _emailController.text.split('@').first;
-          await user.updateDisplayName(displayName);
-        }
-
-      } on FirebaseAuthException catch (e) {
+    } catch (_) {
+      setState(() {
+        _errorMessage = 'Ocurrió un error inesperado.';
+      });
+    } finally {
+      if (mounted) {
         setState(() {
-          if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
-            _errorMessage = 'Correo electrónico o contraseña incorrectos.';
-          } else {
-            _errorMessage = 'Ocurrió un error. Inténtelo de nuevo.';
-          }
+          _isLoading = false;
         });
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
       }
     }
   }
@@ -58,56 +55,88 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Qrden',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.displaySmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Correo Electrónico'),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) => (value?.isEmpty ?? true) ? 'Ingrese su correo' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Contraseña'),
-                  obscureText: true,
-                  validator: (value) => (value?.isEmpty ?? true) ? 'Ingrese su contraseña' : null,
-                ),
-                if (_errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: AnimationLimiter(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: AnimationConfiguration.toStaggeredList(
+                      duration: const Duration(milliseconds: 375),
+                      childAnimationBuilder: (widget) => SlideAnimation(
+                        verticalOffset: 50.0,
+                        child: FadeInAnimation(
+                          child: widget,
+                        ),
+                      ),
+                      children: [
+                        Icon(
+                          Icons.qr_code_scanner,
+                          size: 60,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Qrden',
+                          textAlign: TextAlign.center,
+                          style: textTheme.displaySmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Gestiona tu inventario fácilmente',
+                          textAlign: TextAlign.center,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 48),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(labelText: 'Correo Electrónico', prefixIcon: Icon(Icons.email_outlined)),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) => (value?.isEmpty ?? true) ? 'Ingresa tu correo' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock_outline)),
+                          obscureText: true,
+                          validator: (value) => (value?.isEmpty ?? true) ? 'Ingresa tu contraseña' : null,
+                        ),
+                        if (_errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16.0),
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(color: colorScheme.error),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        const SizedBox(height: 32),
+                        _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : ElevatedButton(
+                                onPressed: _login,
+                                child: const Text('Iniciar Sesión'),
+                              ),
+                      ],
                     ),
                   ),
-                const SizedBox(height: 32),
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _login,
-                        child: const Text('Iniciar Sesión'),
-                      ),
-              ],
+                ),
+              ),
             ),
           ),
         ),

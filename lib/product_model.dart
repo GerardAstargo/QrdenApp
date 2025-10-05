@@ -8,7 +8,7 @@ class Product {
   final double price;
   final Timestamp? fechaIngreso;
   final String? enteredBy; // Employee who entered the product
-  final String? shelfNumber; // Shelf number where the product is located
+  final String? numeroEstante; // Shelf number where the product is located
 
   Product({
     required this.id,
@@ -18,7 +18,7 @@ class Product {
     required this.price,
     this.fechaIngreso,
     this.enteredBy,
-    this.shelfNumber,
+    this.numeroEstante,
   });
 
   // Factory constructor to create a Product from a Firestore document
@@ -45,7 +45,7 @@ class Product {
       price: (data['precio'] ?? 0.0).toDouble(),
       fechaIngreso: ingresoTimestamp,
       enteredBy: data['ingresadoPor'] as String?,
-      shelfNumber: data['numeroEstante'] as String?,
+      numeroEstante: data['numeroEstante'] as String?,
     );
   }
 
@@ -58,7 +58,7 @@ class Product {
       'precio': price,
       'fechaingreso': fechaIngreso ?? FieldValue.serverTimestamp(),
       'ingresadoPor': enteredBy,
-      'numeroEstante': shelfNumber,
+      'numeroEstante': numeroEstante,
     };
   }
 }
