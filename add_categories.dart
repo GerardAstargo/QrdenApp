@@ -1,8 +1,16 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import './firebase_options.dart'; // Make sure this path is correct
 
-// Función para añadir categorías a Firestore
-Future<void> addCategories() async {
+// This is a standalone script to add categories to Firestore.
+// To run it, use the command: dart run add_categories.dart
+
+Future<void> main() async {
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   final categories = [
     'Quesos',
     'Cereales',
@@ -10,18 +18,18 @@ Future<void> addCategories() async {
     'Carnes',
     'Frutas y Verduras',
     'Panadería',
-    'Bebidas',
-    'Limpieza',
-    
+    'Bebidas
+',    'Limpieza',
+    'Abarrotes',
   ];
 
   final firestore = FirebaseFirestore.instance;
   final collection = firestore.collection('categories');
 
-  // Usar un bucle for...of para asegurar que se completen las operaciones
+  print('Iniciando la adición de categorías...');
+
   for (final categoryName in categories) {
     try {
-      // Verificar si la categoría ya existe para no duplicarla
       final query = await collection.where('nombrecategoria', isEqualTo: categoryName).limit(1).get();
       if (query.docs.isEmpty) {
         await collection.add({'nombrecategoria': categoryName});
@@ -34,14 +42,5 @@ Future<void> addCategories() async {
     }
   }
 
-  print('Proceso de añadir categorías completado.');
+  print('Proceso de adición de categorías completado.');
 }
-
-// Para ejecutar este script, puedes llamarlo desde algún lugar de tu app,
-// por ejemplo, en un botón de uso único o al inicio si es necesario.
-// Ejemplo:
-//
-// ElevatedButton(
-//   onPressed: addCategories,
-//   child: const Text('Añadir Categorías'),
-// )
