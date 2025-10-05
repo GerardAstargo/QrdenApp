@@ -52,7 +52,12 @@ Esta es una aplicación Flutter llamada **Qrden** que proporciona autenticación
     *   Se añadió el campo `numeroEstante` al modelo `Product` (`lib/product_model.dart`).
     *   Se incluyó un nuevo campo de texto **"Número de Estante"** en los formularios de creación (`lib/scanner_screen.dart`) y edición (`lib/edit_product_screen.dart`) para registrar y actualizar la ubicación física del producto.
 
+### Corrección de Estructura de Datos de Categorías
+
+*   **Problema:** El menú desplegable de categorías solo mostraba una opción ("Lácteos") porque la estructura en Firestore era incorrecta (un solo documento contenía todos los datos).
+*   **Solución:** Se ejecutó un script para reestructurar la colección `categoria` en Firestore. Ahora, cada categoría (Lácteos, Bebidas, Snacks, Limpieza, Frutas y Verduras) es un documento individual, lo que permite que la aplicación las liste correctamente sin necesidad de cambiar el código fuente.
+
 ## Plan Actual
 
 *   **Objetivo:** Completado.
-*   **Descripción:** Se han implementado con éxito las mejoras solicitadas para la trazabilidad de quién ingresa el producto y la ubicación física del mismo mediante el número de estante.
+*   **Descripción:** Se han corregido los datos de las categorías en Firestore para que se muestren dinámicamente en la aplicación.
