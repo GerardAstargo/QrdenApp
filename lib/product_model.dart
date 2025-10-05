@@ -7,6 +7,7 @@ class Product {
   final int quantity;
   final double price;
   final Timestamp? fechaIngreso;
+  final String? enteredBy; // Employee who entered the product
 
   Product({
     required this.id,
@@ -15,12 +16,14 @@ class Product {
     required this.quantity,
     required this.price,
     this.fechaIngreso,
+    this.enteredBy,
   });
 
-  // Ultra-robust factory to create a Product from a Firestore document
+  // Factory constructor to create a Product from a Firestore document
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
+    // Handle potential type mismatch for 'categoria'
     DocumentReference? categoryRef;
     final categoryData = data['categoria'];
     if (categoryData is DocumentReference) {
@@ -41,6 +44,7 @@ class Product {
       quantity: (data['stock'] ?? 0).toInt(),
       price: (data['precio'] ?? 0.0).toDouble(),
       fechaIngreso: ingresoTimestamp, // Safely assigned
+      enteredBy: data['ingresadoPor'] as String?,
     );
   }
 
@@ -52,6 +56,7 @@ class Product {
       'stock': quantity,
       'precio': price,
       'fechaingreso': fechaIngreso ?? FieldValue.serverTimestamp(),
+      'ingresadoPor': enteredBy,
     };
   }
 }

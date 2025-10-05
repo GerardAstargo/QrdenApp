@@ -19,6 +19,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late TextEditingController _nameController;
   late TextEditingController _priceController;
   late TextEditingController _quantityController;
+  late TextEditingController _enteredByController; // Controller for the employee's name
   DocumentReference? _selectedCategoryRef;
 
   @override
@@ -27,6 +28,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _nameController = TextEditingController(text: widget.product.name);
     _priceController = TextEditingController(text: widget.product.price.toString());
     _quantityController = TextEditingController(text: widget.product.quantity.toString());
+    _enteredByController = TextEditingController(text: widget.product.enteredBy); // Initialize with existing value
     _selectedCategoryRef = widget.product.category;
   }
 
@@ -35,6 +37,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _nameController.dispose();
     _priceController.dispose();
     _quantityController.dispose();
+    _enteredByController.dispose(); // Dispose the new controller
     super.dispose();
   }
 
@@ -43,10 +46,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
       final updatedProduct = Product(
         id: widget.product.id,
         name: _nameController.text,
-        category: _selectedCategoryRef, // Use the selected category reference
+        category: _selectedCategoryRef,
         quantity: int.parse(_quantityController.text),
         price: double.parse(_priceController.text),
         fechaIngreso: widget.product.fechaIngreso,
+        enteredBy: _enteredByController.text, // Get value from the new controller
       );
 
       try {
@@ -83,7 +87,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 validator: (value) => value!.isEmpty ? 'Por favor, introduce un nombre' : null,
               ),
               const SizedBox(height: 16),
-              // Category Dropdown
               _buildCategoryDropdown(),
               const SizedBox(height: 16),
               TextFormField(
@@ -97,6 +100,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 decoration: const InputDecoration(labelText: 'Stock'),
                 keyboardType: TextInputType.number,
                 validator: (value) => value!.isEmpty ? 'Por favor, introduce el stock' : null,
+              ),
+              const SizedBox(height: 16),
+              // New TextFormField for the employee's name
+              TextFormField(
+                controller: _enteredByController,
+                decoration: const InputDecoration(labelText: 'Ingresado por'),
+                validator: (value) => value!.isEmpty ? 'Por favor, introduce el nombre del empleado' : null,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -124,7 +134,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         final categories = snapshot.data ?? [];
 
         return DropdownButtonFormField<DocumentReference>(
-          initialValue: _selectedCategoryRef, // Changed from value
+          value: _selectedCategoryRef,
           decoration: const InputDecoration(
             labelText: 'Categoría',
             border: OutlineInputBorder(),

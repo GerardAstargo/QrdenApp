@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import './add_categories_script.dart'; // Import the script
 import './qr_generator_screen.dart';
 import './profile_screen.dart';
 import './firestore_service.dart';
@@ -49,6 +50,24 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const QrGeneratorScreen()),
     );
+  }
+
+  // Function to execute the category script and show feedback
+  void _runAddCategoriesScript() async {
+    try {
+      await addCategories();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Categorías añadidas correctamente.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al añadir categorías: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -113,6 +132,14 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Generar Código QR',
             color: Colors.green,
             onPressed: _navigateToQrGenerator,
+          ),
+          // Temporary button to add categories
+          _buildActionButton(
+            context: context,
+            icon: Icons.category_outlined, // An appropriate icon
+            label: 'Añadir Categorías',
+            color: Colors.purple, // A different color to distinguish it
+            onPressed: _runAddCategoriesScript, // Execute the script on press
           ),
         ],
       ),

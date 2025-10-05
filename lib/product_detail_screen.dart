@@ -45,6 +45,14 @@ class ProductDetailScreen extends StatelessWidget {
                 _buildDetailRow(context, icon: Icons.price_change, label: 'Precio', value: '\$${product.price.toStringAsFixed(2)}'),
                 const Divider(),
                 _buildDetailRow(context, icon: Icons.calendar_today, label: 'Fecha de Ingreso', value: _formatDate(product.fechaIngreso?.toDate())),
+                const Divider(), // Add a divider for separation
+                // Display the name of the employee who entered the product
+                _buildDetailRow(
+                  context,
+                  icon: Icons.person, // Person icon for the employee
+                  label: 'Ingresado por',
+                  value: product.enteredBy ?? 'No disponible', // Display name or a default text
+                ),
               ],
             ),
           ),
