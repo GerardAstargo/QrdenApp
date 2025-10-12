@@ -25,6 +25,10 @@ Construida con Flutter y Firebase, Qrden ofrece una experiencia de usuario fluid
   - **Escáner Inteligente:** Utiliza la cámara del dispositivo (`mobile_scanner`) para detectar códigos QR. El modo de escaneo (Añadir, Modificar, Eliminar) se selecciona a través de un menú FAB expandible.
   - **Generador de QR:** Crea códigos QR únicos (`qr_flutter`) para identificar nuevos productos que aún no tienen uno.
 
+- **Historial de Actividad (En Desarrollo):**
+  - Se ha añadido un botón de "Historial" en la barra de navegación superior.
+  - Se han creado los archivos base (`history_screen.dart`, `history_model.dart`) para la futura implementación de esta pantalla.
+
 - **Detalles del Producto:**
   - Una vista dedicada muestra toda la información de un producto: nombre, categoría, stock, precio, fecha de ingreso, usuario que lo ingresó y número de estante.
 
@@ -44,12 +48,12 @@ Qrden sigue una arquitectura limpia y por capas para garantizar la separación d
 
 - **Gestión de Estado:**
   - **`provider`:** Se utiliza para la gestión de estado a nivel de aplicación, principalmente para manejar el cambio de tema (claro/oscuro).
-  - **`StatefulWidget` y `ValueNotifier`:** Para gestionar el estado local y efímero dentro de los widgets, como las animaciones del FAB o el estado de la linterna del escáner.
+  - **`StatefulWidget` y `AnimationController`:** Para gestionar el estado local y efímero dentro de los widgets, como las animaciones del FAB.
 
 - **Flujo de Datos y Servicios:**
   - **Capa de Presentación (UI):** Compuesta por todos los widgets y pantallas. Es responsable de mostrar los datos y capturar la interacción del usuario.
   - **Capa de Servicio (`firestore_service.dart`):** Actúa como un intermediario entre la UI y Firebase. Centraliza y abstrae toda la lógica de acceso a datos (lectura, escritura, actualización y eliminación en Firestore), ofreciendo una API limpia al resto de la aplicación.
-  - **Capa de Modelo de Datos (`product_model.dart`):** Define la estructura del objeto `Product` con una lógica de serialización/deserialización robusta (`fromFirestore`, `toFirestore`) para garantizar la coherencia de los datos entre la app y la base de datos.
+  - **Capa de Modelo de Datos (`product_model.dart`, `history_model.dart`):** Define la estructura de los objetos de datos con una lógica de serialización/deserialización robusta (`fromFirestore`, `toFirestore`) para garantizar la coherencia de los datos entre la app y la base de datos.
   - **Logging:** Se utiliza `dart:developer` para un registro de errores estructurado y profesional, especialmente útil para depurar problemas en la capa de servicio.
 
 - **Navegación:**
@@ -65,7 +69,7 @@ El diseño de Qrden se centra en la claridad, la modernidad y una experiencia de
 - **Esquema de Color:**
   - Basado en **Material 3 (`useMaterial3: true`)**.
   - Utiliza `ColorScheme.fromSeed` con un color primario verde oscuro (`#2E7D32`) para generar paletas armoniosas y consistentes tanto para el modo claro como para el oscuro.
-  - Se evita el uso de `withOpacity`, favoreciendo `withAlpha` para un control más moderno y predecible de la transparencia.
+  - Se favorece `withAlpha` para un control moderno y predecible de la transparencia.
 
 - **Tipografía:**
   - La fuente **Inter**, obtenida a través de `google_fonts`, se utiliza en toda la aplicación para una legibilidad excelente y una estética moderna.
@@ -84,11 +88,21 @@ El diseño de Qrden se centra en la claridad, la modernidad y una experiencia de
 
 ## 5. Dependencias Clave
 
-- **`firebase_core`, `firebase_auth`, `cloud_firestore`:** El stack de Firebase para backend, autenticación y base de datos NoSQL en tiempo real.
+- **`firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`:** El stack de Firebase para backend, autenticación, base de datos NoSQL y almacenamiento de archivos.
 - **`provider`:** Para una gestión de estado simple y eficaz.
 - **`mobile_scanner`:** La librería principal para la funcionalidad de escaneo de códigos QR.
 - **`qr_flutter`:** Para la generación de imágenes de códigos QR dentro de la app.
 - **`google_fonts`:** Para cargar y utilizar fuentes personalizadas de manera sencilla.
 - **`intl`:** Para el formateo de fechas y números.
 - **`flutter_staggered_animations`, `animations`:** Para enriquecer la experiencia de usuario con animaciones elegantes.
+- **`cupertino_icons`:** Iconografía de estilo iOS.
+
+---
+
+## 6. Control de Versiones
+
+- **Repositorio Git:** El código fuente del proyecto está gestionado y versionado con Git.
+- **Alojamiento Remoto:** El repositorio remoto está alojado en GitHub y es accesible en la siguiente URL:
+  - **[https://github.com/GerardAstargo/QrdenApp](https://github.com/GerardAstargo/QrdenApp)**
+- **Estado Actual:** El proyecto ha sido restaurado a la versión 5.4 y esta versión ha sido subida como la base del repositorio remoto.
 
