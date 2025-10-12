@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HistoryEntry {
-  final String id; // This is the product ID, which will be the doc ID in the history collection
+  final String id; // The unique ID of the history document itself
+  final String productId; // The ID of the product (e.g., the QR code)
   final String name;
   final DocumentReference? category;
   final int quantity;
@@ -9,12 +10,12 @@ class HistoryEntry {
   final String? enteredBy;
   final String? numeroEstante;
 
-  // New date fields
   final Timestamp fechaIngreso;
   final Timestamp? fechaSalida; // Nullable: will be set on deletion
 
   HistoryEntry({
     required this.id,
+    required this.productId,
     required this.name,
     this.category,
     required this.quantity,
@@ -22,7 +23,7 @@ class HistoryEntry {
     this.enteredBy,
     this.numeroEstante,
     required this.fechaIngreso,
-    this.fechaSalida, // Optional in constructor
+    this.fechaSalida, 
   });
 
   factory HistoryEntry.fromFirestore(DocumentSnapshot doc) {
@@ -34,7 +35,8 @@ class HistoryEntry {
     }
 
     return HistoryEntry(
-      id: doc.id,
+      id: doc.id, // The history document's own unique ID
+      productId: data['productId'] ?? '', // The ID of the scanned product
       name: data['nombreproducto'] ?? 'N/A',
       category: categoryRef,
       quantity: (data['stock'] ?? 0).toInt(),

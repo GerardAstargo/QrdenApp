@@ -11,39 +11,67 @@ class FirestoreService {
   final String _categoriesCollection = 'categoria';
   final String _historyCollection = 'registro';
 
-  // --- NEW LOGIC --- //
-  
-  // When a product is added, create a history entry with an entry date.
+  // --- FINAL CORRECTED LOGIC --- //
+
+  /// Adds a product and handles stock atomically while creating a unique history record.
   Future<void> addProduct(Product product) async {
-    // Create the main product entry
     final productRef = _db.collection(_productsCollection).doc(product.id);
-    await productRef.set(product.toFirestore());
 
-    // Create the single history log for this product
-    final historyRef = _db.collection(_historyCollection).doc(product.id);
-    final historyData = product.toFirestore(); // Base data from product
-    historyData['fecha_ingreso'] = product.fechaIngreso; // Set the entry date
-    historyData['fecha_salida'] = null; // Ensure exit date is null on creation
+    // Use a transaction to safely read and update the stock
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(productRef);
 
-    await historyRef.set(historyData);
+      if (snapshot.exists) {
+        // If product exists, SUM the new quantity to the existing stock
+        final existingStock = (snapshot.data()!['stock'] ?? 0) as int;
+        final newStock = existingStock + product.quantity;
+        transaction.update(productRef, {'stock': newStock});
+      } else {
+        // If product does not exist, create it with the initial quantity
+        transaction.set(productRef, product.toFirestore());
+      }
+    });
+
+    // After the transaction, create a SEPARATE and UNIQUE history entry for this batch.
+    // .add() creates a new document with a unique ID.
+    final historyData = product.toFirestore();
+    historyData['fecha_ingreso'] = product.fechaIngreso;
+    historyData['fecha_salida'] = null;
+    historyData['productId'] = product.id; // Link to the main product
+
+    await _db.collection(_historyCollection).add(historyData);
   }
 
-  // When a product is deleted, update its history entry with an exit date.
+  /// Deletes a product, reducing stock and marking a history entry as archived.
   Future<void> deleteProduct(String id) async {
-    // 1. Delete the product from the main 'producto' collection
-    await _db.collection(_productsCollection).doc(id).delete();
+    final productRef = _db.collection(_productsCollection).doc(id);
 
-    // 2. Update the corresponding history log with the exit timestamp
-    final historyRef = _db.collection(_historyCollection).doc(id);
-    await historyRef.update({'fecha_salida': Timestamp.now()});
+    // This transaction is simple: it just deletes the product summary.
+    // The inventory management logic is now based on history entries.
+    await _db.runTransaction((transaction) async {
+      transaction.delete(productRef);
+    });
+
+    // Find the oldest active history entry for this product ID to mark as 'exited'
+    final querySnapshot = await _db
+        .collection(_historyCollection)
+        .where('productId', isEqualTo: id)
+        .where('fecha_salida', isEqualTo: null)
+        .orderBy('fecha_ingreso')
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      final historyDocToUpdate = querySnapshot.docs.first.reference;
+      await historyDocToUpdate.update({'fecha_salida': Timestamp.now()});
+    }
   }
 
-  // ---UNCHANGED METHODS --- //
+  // --- UNCHANGED OR MINOR CHANGES --- //
 
   Stream<List<HistoryEntry>> getHistoryEntries() {
     return _db
         .collection(_historyCollection)
-        // Order by most recent entry first
         .orderBy('fecha_ingreso', descending: true)
         .snapshots()
         .map((snapshot) {
@@ -92,7 +120,7 @@ class FirestoreService {
         return Product.fromFirestore(snapshot);
       } catch (e, s) {
         developer.log(
-          'Failed to parse product from getProductById: ${snapshot.id}',
+          'Failed to parse product: ${snapshot.id}',
           name: 'FirestoreService.getProductById',
           error: e,
           stackTrace: s,
@@ -103,14 +131,10 @@ class FirestoreService {
   }
 
   Future<void> updateProduct(Product product) async {
-    // Also update the history record in case product details changed
-    await _db.collection(_historyCollection).doc(product.id).update(product.toFirestore());
     await _db.collection(_productsCollection).doc(product.id).update(product.toFirestore());
   }
 
   Future<void> updateStock(String id, int newQuantity) {
-    // Also update the stock in the history record
-     _db.collection(_historyCollection).doc(id).update({'stock': newQuantity});
     return _db.collection(_productsCollection).doc(id).update({'stock': newQuantity});
   }
 }
