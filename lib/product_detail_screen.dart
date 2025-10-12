@@ -1,158 +1,127 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import './product_model.dart';
+import './firestore_service.dart';
 import './category_display_widget.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final Product product;
-
   const ProductDetailScreen({super.key, required this.product});
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'No disponible';
-    // Use a locale-friendly format
-    return DateFormat.yMMMd('es_ES').add_jm().format(date);
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  late Product _product; 
+
+  @override
+  void initState() {
+    super.initState();
+    _product = widget.product;
+  }
+
+  Future<void> _archiveProduct() async {
+    final shouldArchive = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Archivar Producto'),
+        content: Text('¿Estás seguro de que quieres archivar "${_product.name}"? Esta acción registrará su salida del inventario.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Archivar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (shouldArchive) {
+      await FirestoreService().archiveProduct(_product.id);
+      if (mounted) {
+        Navigator.pop(context, 'Producto archivado con éxito');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
+    final dateFormat = DateFormat('dd/MM/yyyy, HH:mm');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(product.name),
-      ),
-      body: AnimationLimiter(
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: AnimationConfiguration.toStaggeredList(
-            duration: const Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              verticalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
-            children: [
-              _buildHeaderCard(context, textTheme),
-              // --- CORRECTED: Use qrCode instead of id ---
-              _buildDetailCard(
-                context: context,
-                icon: Icons.qr_code,
-                label: 'Código QR',
-                value: product.qrCode,
-              ),
-               _buildDetailCard(
-                context: context,
-                icon: Icons.fingerprint, // Icon for unique ID
-                label: 'ID Interno del Producto',
-                value: product.internalId,
-              ),
-              _buildDetailCard(
-                context: context,
-                icon: Icons.category_outlined,
-                label: 'Categoría',
-                child: CategoryDisplayWidget(categoryReference: product.category, style: textTheme.titleMedium),
-              ),
-              _buildDetailCard(
-                context: context,
-                icon: Icons.inventory_2_outlined,
-                label: 'Cantidad en Stock',
-                value: product.quantity.toString(),
-              ),
-              _buildDetailCard(
-                context: context,
-                icon: Icons.price_change_outlined,
-                label: 'Precio',
-                value: '\$${product.price.toStringAsFixed(2)}',
-              ),
-               _buildDetailCard(
-                context: context,
-                icon: Icons.business_outlined, 
-                label: 'Número de Estante',
-                value: product.numeroEstante?.toString() ?? 'No especificado',
-              ),
-              _buildDetailCard(
-                context: context,
-                icon: Icons.person_outline,
-                label: 'Ingresado por',
-                value: product.enteredBy ?? 'No disponible',
-              ),
-              _buildDetailCard(
-                context: context,
-                icon: Icons.calendar_today_outlined,
-                label: 'Fecha de Ingreso',
-                value: _formatDate(product.fechaIngreso?.toDate()),
-              ),
-            ],
+        title: Text(_product.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.archive_outlined),
+            tooltip: 'Archivar Producto',
+            onPressed: _archiveProduct,
           ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildHeaderCard(BuildContext context, TextTheme textTheme) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.primary.withAlpha(25),
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Text(
-          product.name,
-          textAlign: TextAlign.center,
-          style: textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailCard({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    String? value,
-    Widget? child,
-  }) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
-    final colorScheme = theme.colorScheme;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: colorScheme.primary.withAlpha(25),
-              foregroundColor: colorScheme.primary,
-              child: Icon(icon),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: 4),
-                  child ?? 
-                  Text(
-                    value ?? '',
-                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ],
+          children: <Widget>[
+            _buildDetailCard('Información General', [
+              _buildInfoRow(Icons.qr_code, 'QR Code', _product.id),
+              _buildInfoRow(Icons.label, 'Nombre', _product.name),
+              _buildInfoRow(Icons.inventory, 'Stock Actual', _product.quantity.toString()),
+              _buildInfoRow(Icons.sell, 'Precio', 'S/ ${_product.price.toStringAsFixed(2)}'),
+              _buildInfoRow(Icons.storage, 'Nº de Estante', _product.numeroEstante ?? 'No especificado'),
+            ]),
+            const SizedBox(height: 16),
+            _buildDetailCard('Categoría', [
+              _product.category != null 
+                ? CategoryDisplayWidget(categoryReference: _product.category!) 
+                : const Text('No especificada'),
+            ]),
+            const SizedBox(height: 16),
+            _buildDetailCard('Registro', [
+              _buildInfoRow(Icons.person, 'Ingresado por', _product.enteredBy ?? 'Desconocido'),
+              _buildInfoRow(
+                Icons.calendar_today,
+                'Fecha de Ingreso',
+                _product.fechaIngreso != null ? dateFormat.format(_product.fechaIngreso!.toDate()) : 'No registrada',
               ),
-            ),
+            ]),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDetailCard(String title, List<Widget> children) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            const Divider(height: 20, thickness: 1),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+          const SizedBox(width: 16),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value, textAlign: TextAlign.end)),
+        ],
       ),
     );
   }

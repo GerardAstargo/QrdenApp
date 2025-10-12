@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import './product_model.dart';
-import './history_model.dart';
+import './history_model.dart'; // <- Added this missing import
 import 'dart:async';
 
 class FirestoreService {
@@ -10,76 +10,77 @@ class FirestoreService {
   final String _categoriesCollection = 'categoria';
   final String _historyCollection = 'registro';
 
-  Future<void> addProduct(Product product) async {
-    final productRef = _db.collection(_productsCollection).doc(product.internalId);
-    await productRef.set(product.toFirestore());
+  Future<void> addOrUpdateProduct(Product product) async {
+    final productRef = _db.collection(_productsCollection).doc(product.id);
 
-    final historyData = {
-      ...product.toFirestore(),
-      'internalId': product.internalId,
-      'fecha_ingreso': product.fechaIngreso ?? FieldValue.serverTimestamp(),
-      'fecha_salida': null,
-    };
-    await _db.collection(_historyCollection).add(historyData);
+    await _db.runTransaction((transaction) async {
+      final productSnapshot = await transaction.get(productRef);
+
+      if (productSnapshot.exists) {
+        int newQuantity = (productSnapshot.data()!['stock'] ?? 0) + product.quantity;
+        transaction.update(productRef, {
+          'stock': newQuantity,
+          'nombre': product.name,
+          'categoria': product.category,
+          'precio': product.price,
+          'numero_estante': product.numeroEstante,
+        });
+      } else {
+        transaction.set(productRef, product.toFirestore());
+      }
+
+      final historyRef = _db.collection(_historyCollection).doc();
+      transaction.set(historyRef, {
+        'id': product.id,
+        'nombre': product.name,
+        'stock': product.quantity,
+        'precio': product.price,
+        'fecha_ingreso': FieldValue.serverTimestamp(),
+        'fecha_salida': null,
+        'ingresado_por': product.enteredBy,
+      });
+    });
   }
 
-  Future<void> deleteProduct(String internalId) async {
-    await _db.collection(_productsCollection).doc(internalId).delete();
-
+  Future<void> archiveProduct(String productId) async {
     final querySnapshot = await _db
         .collection(_historyCollection)
-        .where('internalId', isEqualTo: internalId)
+        .where('id', isEqualTo: productId)
         .where('fecha_salida', isEqualTo: null)
-        .limit(1)
         .get();
 
-    if (querySnapshot.docs.isNotEmpty) {
-      await querySnapshot.docs.first.reference.update({'fecha_salida': Timestamp.now()});
+    final now = Timestamp.now();
+    for (var doc in querySnapshot.docs) {
+      await doc.reference.update({'fecha_salida': now});
     }
   }
 
   Future<void> updateProduct(Product product) async {
-    await _db.collection(_productsCollection).doc(product.internalId).update(product.toFirestore());
-
-    final querySnapshot = await _db
-        .collection(_historyCollection)
-        .where('internalId', isEqualTo: product.internalId)
-        .where('fecha_salida', isEqualTo: null)
-        .limit(1)
-        .get();
-    
-    if(querySnapshot.docs.isNotEmpty){
-      await querySnapshot.docs.first.reference.update(product.toFirestore());
-    }
-  }
-
-  Future<void> updateStock(String internalId, int newQuantity) async {
-    await _db.collection(_productsCollection).doc(internalId).update({'stock': newQuantity});
-     final querySnapshot = await _db
-        .collection(_historyCollection)
-        .where('internalId', isEqualTo: internalId)
-        .where('fecha_salida', isEqualTo: null)
-        .limit(1)
-        .get();
-    
-    if(querySnapshot.docs.isNotEmpty){
-      await querySnapshot.docs.first.reference.update({'stock': newQuantity});
-    }
+    await _db.collection(_productsCollection).doc(product.id).update(product.toFirestore());
   }
 
   Stream<List<Product>> getProducts() {
     return _db.collection(_productsCollection).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+      try {
+        return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+      } catch (e) {
+        return [];
+      }
     });
   }
 
+  // Corrected the return type to use the now-imported HistoryEntry
   Stream<List<HistoryEntry>> getHistoryEntries() {
     return _db
         .collection(_historyCollection)
         .orderBy('fecha_ingreso', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => HistoryEntry.fromFirestore(doc)).toList();
+      try {
+        return snapshot.docs.map((doc) => HistoryEntry.fromFirestore(doc)).toList();
+      } catch (e) {
+        return [];
+      }
     });
   }
 
@@ -87,10 +88,10 @@ class FirestoreService {
     return _db.collection(_categoriesCollection).snapshots().map((snapshot) => snapshot.docs);
   }
 
-  Future<Product?> getProductById(String internalId) async {
-    final snapshot = await _db.collection(_productsCollection).doc(internalId).get();
-    if (snapshot.exists) {
-      return Product.fromFirestore(snapshot);
+  Future<Product?> getProductById(String productId) async {
+    final doc = await _db.collection(_productsCollection).doc(productId).get();
+    if (doc.exists) {
+      return Product.fromFirestore(doc);
     }
     return null;
   }

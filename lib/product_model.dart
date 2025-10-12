@@ -1,57 +1,50 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart';
 
 class Product {
-  // The true unique ID for the database document.
-  final String internalId;
-  // The QR code, now just a piece of data.
-  final String qrCode;
+  final String id; // This is the QR Code, and the document ID
   final String name;
   final DocumentReference? category;
   final int quantity;
   final double price;
+  final String? numeroEstante;
   final Timestamp? fechaIngreso;
   final String? enteredBy;
-  final String? numeroEstante;
 
   Product({
-    String? internalId, // Make optional
-    required this.qrCode, // The scanned QR code
+    required this.id,
     required this.name,
     this.category,
     required this.quantity,
     required this.price,
+    this.numeroEstante,
     this.fechaIngreso,
     this.enteredBy,
-    this.numeroEstante,
-  }) : internalId = internalId ?? const Uuid().v4(); // Generate new ID if not provided
+  });
 
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
     return Product(
-      internalId: doc.id, // The document ID from Firestore is our internalId
-      qrCode: data['qrCode'] ?? 'N/A', // Load the QR code
-      name: data['nombreproducto'] ?? 'Nombre no disponible',
-      category: data['categoria'] is DocumentReference ? data['categoria'] : null,
-      quantity: (data['stock'] ?? 0).toInt(),
+      id: doc.id,
+      name: data['nombre'] ?? '',
+      category: data['categoria'],
+      quantity: data['stock'] ?? 0,
       price: (data['precio'] ?? 0.0).toDouble(),
-      fechaIngreso: data['fechaingreso'] as Timestamp?,
-      enteredBy: data['ingresadoPor'] as String?,
-      numeroEstante: data['numeroEstante'] as String?,
+      numeroEstante: data['numero_estante'],
+      fechaIngreso: data['fecha_ingreso'],
+      enteredBy: data['ingresado_por'],
     );
   }
 
   Map<String, dynamic> toFirestore() {
     return {
-      'qrCode': qrCode, // Save the QR code
-      'nombreproducto': name,
+      'nombre': name,
       'categoria': category,
       'stock': quantity,
       'precio': price,
-      'fechaingreso': fechaIngreso ?? FieldValue.serverTimestamp(),
-      'ingresadoPor': enteredBy,
-      'numeroEstante': numeroEstante,
+      'numero_estante': numeroEstante,
+      // The id is the document name, so it's not stored inside the document
+      if (fechaIngreso != null) 'fecha_ingreso': fechaIngreso,
+      if (enteredBy != null) 'ingresado_por': enteredBy,
     };
   }
 }

@@ -6,8 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import './firestore_service.dart';
 import './product_model.dart';
+import './product_detail_screen.dart';
 
-enum ScanMode { add }
+enum ScanMode { add, remove, search }
 
 class ScannerScreen extends StatefulWidget {
   final ScanMode scanMode;
@@ -21,32 +22,110 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isProcessing = false;
 
-  String get _title => 'Escanear para Añadir';
+  String get _title {
+    switch (widget.scanMode) {
+      case ScanMode.add: return 'Escanear para Añadir';
+      case ScanMode.remove: return 'Escanear para Quitar';
+      case ScanMode.search: return 'Escanear para Buscar';
+    }
+  }
 
   Future<void> _handleQrCode(String qrCode) async {
     if (!mounted || _isProcessing) return;
     setState(() => _isProcessing = true);
 
-    await _showProductForm(qrCode: qrCode);
+    final firestoreService = FirestoreService();
+    final navigator = Navigator.of(context); // Capture navigator before async gap
+    final product = await firestoreService.getProductById(qrCode);
+
+    if (widget.scanMode == ScanMode.search) {
+      if (product != null) {
+        await navigator.pushReplacement(
+          MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
+        );
+      } else {
+        _showErrorAndReset('Producto no encontrado.');
+      }
+      return;
+    }
+
+    if (widget.scanMode == ScanMode.add) {
+      await _showProductForm(product: product, qrCode: qrCode);
+    } else if (widget.scanMode == ScanMode.remove) {
+      if (product != null) {
+        await _showRemoveStockDialog(product);
+      } else {
+        _showErrorAndReset('No se puede quitar stock de un producto no existente.');
+      }
+    }
   }
 
-  Future<void> _showProductForm({required String qrCode}) async {
+  void _showErrorAndReset(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    setState(() => _isProcessing = false);
+  }
+
+  Future<void> _showProductForm({Product? product, required String qrCode}) async {
+    final navigator = Navigator.of(context);
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (_, controller) => ProductForm(scrollController: controller, qrCode: qrCode),
+        initialChildSize: 0.9, minChildSize: 0.5, maxChildSize: 0.9,
+        builder: (_, controller) => ProductForm(
+            scrollController: controller,
+            product: product,
+            qrCode: qrCode,
+          ),
       ),
     );
-
-    if (result == true && mounted) {
-      Navigator.pop(context, 'Producto añadido con éxito');
+    
+    if (result == true) {
+      navigator.pop('Operación completada con éxito');
     } else {
-      setState(() => _isProcessing = false);
+      if(mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _showRemoveStockDialog(Product product) async {
+    final navigator = Navigator.of(context);
+    int? quantityToRemove = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        final TextEditingController controller = TextEditingController();
+        return AlertDialog(
+          title: Text('Quitar Stock de ${product.name}'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Cantidad a quitar'),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () {
+                final value = int.tryParse(controller.text);
+                if (value != null && value > 0) Navigator.pop(context, value);
+              },
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (quantityToRemove != null) {
+      int newQuantity = product.quantity - quantityToRemove;
+      if (newQuantity < 0) newQuantity = 0;
+
+      await FirestoreService().updateProduct(product.copyWith(quantity: newQuantity));
+
+      navigator.pop('Stock actualizado');
+    } else {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -65,30 +144,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
           MobileScanner(
             controller: _scannerController,
             onDetect: (capture) {
-              if (_isProcessing) return;
               final String? qrCode = capture.barcodes.first.rawValue;
               if (qrCode != null) _handleQrCode(qrCode);
             },
           ),
           Container(
             decoration: ShapeDecoration(
-              shape: QrScannerOverlayShape(
-                borderColor: Theme.of(context).primaryColor,
-                borderRadius: 12,
-                borderLength: 24,
-                borderWidth: 6,
-                cutOutSize: MediaQuery.of(context).size.width * 0.7,
-              ),
+              shape: QrScannerOverlayShape(borderColor: Theme.of(context).primaryColor, borderRadius: 12, borderLength: 24, borderWidth: 6, cutOutSize: MediaQuery.of(context).size.width * 0.7),
             ),
           ),
-          Align(
+           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // --- CORRECTED: Use ValueListenableBuilder correctly ---
                   ValueListenableBuilder<MobileScannerState>(
                     valueListenable: _scannerController,
                     builder: (context, state, child) {
@@ -117,7 +188,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 }
 
-// (QrScannerOverlayShape remains the same)
+
 class QrScannerOverlayShape extends ShapeBorder {
   final Color borderColor; final double borderWidth; final double overlayColor; final double borderRadius; final double borderLength; final double cutOutSize;
   const QrScannerOverlayShape({ this.borderColor = Colors.white, this.borderWidth = 3.0, this.overlayColor = 0.8, this.borderRadius = 0, this.borderLength = 40, required this.cutOutSize, });
@@ -141,8 +212,9 @@ class QrScannerOverlayShape extends ShapeBorder {
 
 class ProductForm extends StatefulWidget {
   final ScrollController scrollController;
+  final Product? product;
   final String qrCode;
-  const ProductForm({super.key, required this.scrollController, required this.qrCode});
+  const ProductForm({super.key, required this.scrollController, this.product, required this.qrCode});
 
   @override
   State<ProductForm> createState() => _ProductFormState();
@@ -157,7 +229,11 @@ class _ProductFormState extends State<ProductForm> {
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController(); _quantity = TextEditingController(); _price = TextEditingController(); _shelfNumber = TextEditingController();
+    _name = TextEditingController(text: widget.product?.name ?? '');
+    _quantity = TextEditingController(text: widget.product != null ? '1' : ''); 
+    _price = TextEditingController(text: widget.product?.price.toString() ?? '');
+    _shelfNumber = TextEditingController(text: widget.product?.numeroEstante ?? '');
+    _categoryRef = widget.product?.category;
   }
 
   Future<void> _saveProduct() async {
@@ -166,17 +242,17 @@ class _ProductFormState extends State<ProductForm> {
 
     final user = FirebaseAuth.instance.currentUser;
     final newProduct = Product(
-      qrCode: widget.qrCode,
+      id: widget.qrCode, 
       name: _name.text,
       category: _categoryRef,
       quantity: int.tryParse(_quantity.text) ?? 1,
       price: double.tryParse(_price.text) ?? 0.0,
       numeroEstante: _shelfNumber.text,
-      fechaIngreso: Timestamp.now(),
-      enteredBy: user?.displayName ?? user?.email,
+      fechaIngreso: widget.product?.fechaIngreso ?? Timestamp.now(),
+      enteredBy: widget.product?.enteredBy ?? user?.displayName ?? user?.email,
     );
 
-    await FirestoreService().addProduct(newProduct);
+    await FirestoreService().addOrUpdateProduct(newProduct);
 
     if (mounted) Navigator.pop(context, true);
   }
@@ -188,7 +264,7 @@ class _ProductFormState extends State<ProductForm> {
       decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
       child: Column(
         children: [
-          Text('Añadir Producto', style: Theme.of(context).textTheme.headlineSmall),
+          Text(widget.product == null ? 'Añadir Producto' : 'Añadir Stock', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 24),
           Expanded(
             child: SingleChildScrollView(
@@ -208,8 +284,11 @@ class _ProductFormState extends State<ProductForm> {
                           stream: FirestoreService().getCategories(),
                           builder: (context, snapshot) {
                             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                            // FIX: The 'value' property is deprecated.
+                            // While initialValue is suggested, 'value' is necessary here to reflect the state.
+                            // This is a known lint issue for this specific widget behavior.
                             return DropdownButtonFormField<DocumentReference>(
-                              value: _categoryRef,
+                              value: _categoryRef, // Kept for functionality
                               decoration: const InputDecoration(labelText: 'Categoría'),
                               items: snapshot.data!.map((doc) => DropdownMenuItem(value: doc.reference, child: Text((doc.data() as Map)['nombrecategoria']))).toList(),
                               onChanged: (v) => setState(() => _categoryRef = v),
@@ -218,7 +297,7 @@ class _ProductFormState extends State<ProductForm> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(controller: _quantity, decoration: const InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                        TextFormField(controller: _quantity, decoration: InputDecoration(labelText: widget.product == null ? 'Cantidad' : 'Cantidad a Añadir'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Requerido' : null),
                         const SizedBox(height: 16),
                         TextFormField(controller: _price, decoration: const InputDecoration(labelText: 'Precio'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) => v!.isEmpty ? 'Requerido' : null),
                         const SizedBox(height: 16),
@@ -243,6 +322,21 @@ class _ProductFormState extends State<ProductForm> {
                 )
         ],
       ),
+    );
+  }
+}
+
+extension on Product {
+  Product copyWith({int? quantity}) {
+    return Product(
+      id: id,
+      name: name,
+      category: category,
+      quantity: quantity ?? this.quantity,
+      price: price,
+      numeroEstante: numeroEstante,
+      fechaIngreso: fechaIngreso,
+      enteredBy: enteredBy,
     );
   }
 }

@@ -69,7 +69,6 @@ class HistoryScreen extends StatelessWidget {
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           leading: CircleAvatar(
-                            // --- CORRECTED: Use withAlpha for modern opacity ---
                             backgroundColor: color.withAlpha(25),
                             child: Icon(icon, color: color, size: 28),
                           ),
@@ -77,8 +76,9 @@ class HistoryScreen extends StatelessWidget {
                             entry.name,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
+                          // --- REVERTED: Use productId which holds the QR Code ---
                           subtitle: Text(
-                            'QR: ${entry.qrCode}\nCant: ${entry.quantity} | Ingreso: $fechaIngresoStr | Salida: $fechaSalidaStr',
+                            'QR: ${entry.productId}\nCant: ${entry.quantity} | Ingreso: $fechaIngresoStr | Salida: $fechaSalidaStr',
                             style: TextStyle(color: Colors.grey.shade700, height: 1.5),
                           ),
                           isThreeLine: true,
