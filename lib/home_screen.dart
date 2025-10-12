@@ -9,6 +9,7 @@ import './product_model.dart';
 import './scanner_screen.dart';
 import './product_detail_screen.dart';
 import './category_display_widget.dart';
+import './history_screen.dart'; // Import the new history screen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -60,15 +61,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
-  void _navigateAndScan(ScanMode mode) async { // Make function async
-    _toggleFabMenu(); // Close menu before navigating
+  void _navigateAndScan(ScanMode mode) async { 
+    _toggleFabMenu(); 
     
-    // Wait for the result from the ScannerScreen.
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (context) => ScannerScreen(scanMode: mode)),
     );
 
-    // After returning, if there is a result message, show it in a SnackBar.
     if (result != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -79,11 +78,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-
   void _navigateToQrGenerator() {
-    _toggleFabMenu(); // Close menu before navigating
+    _toggleFabMenu();
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const QrGeneratorScreen()),
+    );
+  }
+
+  void _navigateToHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const HistoryScreen()),
     );
   }
 
@@ -93,6 +97,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       appBar: AppBar(
         title: Text(_welcomeMessage),
         actions: [
+          // New History Button
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Historial',
+            onPressed: _navigateToHistory,
+          ),
           IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: 'Perfil',
@@ -144,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(25), // Modern way to set opacity
+                          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(25),
                           child: Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.primary),
                         ),
                         title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -169,19 +179,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
-        // Overlay to close menu
         if (_isFabMenuOpen)
           GestureDetector(
             onTap: _toggleFabMenu,
             child: Container(
-              color: Colors.black.withAlpha(128), // Modern way to set opacity
+              color: Colors.black.withAlpha(128),
               width: double.infinity,
               height: double.infinity,
             ),
           ),
-        // FAB menu items
         ..._buildFabMenuItems(),
-        // Main FAB
         FloatingActionButton(
           onPressed: _toggleFabMenu,
           elevation: 4,
@@ -218,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   Card(elevation: 2, child: Padding(padding: const EdgeInsets.all(8.0), child: Text(actions[index].label))),
                   const SizedBox(width: 8),
                   FloatingActionButton.small(
-                    heroTag: null, // Important for multiple FABs
+                    heroTag: null, 
                     onPressed: actions[index].onPressed,
                     child: Icon(actions[index].icon),
                   ),

@@ -284,8 +284,7 @@ class _ProductFormState extends State<ProductForm> {
         : FirestoreService().updateProduct(product));
 
     if (mounted) {
-      // REMOVED ScaffoldMessenger from here
-      Navigator.pop(context, true); // Pop with success
+      Navigator.pop(context, true);
     }
   }
 
@@ -320,7 +319,6 @@ class _ProductFormState extends State<ProductForm> {
                           builder: (context, snapshot) {
                             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                             return DropdownButtonFormField<DocumentReference>(
-                              // Use 'value' instead of 'initialValue' for DropdownButtonFormField
                               value: _categoryRef,
                               decoration: const InputDecoration(labelText: 'Categoría'),
                               items: snapshot.data!.map((doc) => DropdownMenuItem(value: doc.reference, child: Text((doc.data() as Map)['nombrecategoria']))).toList(),
