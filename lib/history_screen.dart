@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import './history_model.dart';
 import './firestore_service.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -13,8 +14,6 @@ class HistoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Historial de Movimientos'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: StreamBuilder<List<HistoryEntry>>(
         stream: firestoreService.getHistoryEntries(),
@@ -23,12 +22,13 @@ class HistoryScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('Se produjo un error: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Text(
                 'No hay movimientos en el historial.',
+                textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
             );
@@ -36,58 +36,67 @@ class HistoryScreen extends StatelessWidget {
 
           final entries = snapshot.data!;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(8.0),
-            itemCount: entries.length,
-            itemBuilder: (context, index) {
-              final entry = entries[index];
-              
-              // NEW LOGIC: Check if fechaSalida is null
-              final bool isProductActive = entry.fechaSalida == null;
-              final IconData icon = isProductActive ? Icons.file_download_done_rounded : Icons.archive_rounded;
-              final Color color = isProductActive ? Colors.green.shade700 : Colors.red.shade700;
-              final String statusText = isProductActive ? 'ACTIVO' : 'ARCHIVADO';
+          return AnimationLimiter(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: entries.length,
+              itemBuilder: (context, index) {
+                final entry = entries[index];
+                
+                final bool isProductActive = entry.fechaSalida == null;
+                final IconData icon = isProductActive ? Icons.file_download_done_rounded : Icons.archive_rounded;
+                final Color color = isProductActive ? Colors.green.shade700 : Colors.red.shade700;
+                final String statusText = isProductActive ? 'ACTIVO' : 'ARCHIVADO';
 
-              // Format dates
-              final format = DateFormat('dd/MM/yy, HH:mm');
-              final String fechaIngresoStr = format.format(entry.fechaIngreso.toDate());
-              final String fechaSalidaStr = entry.fechaSalida != null 
-                  ? format.format(entry.fechaSalida!.toDate())
-                  : '--/--/--';
+                final format = DateFormat('dd/MM/yy, HH:mm');
+                final String fechaIngresoStr = format.format(entry.fechaIngreso.toDate());
+                final String fechaSalidaStr = entry.fechaSalida != null 
+                    ? format.format(entry.fechaSalida!.toDate())
+                    : '--/--/--';
 
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: color.withOpacity(0.5), width: 1),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                  leading: CircleAvatar(
-                    backgroundColor: color.withOpacity(0.15),
-                    child: Icon(icon, color: color, size: 28),
-                  ),
-                  title: Text(
-                    entry.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  subtitle: Text(
-                    'Cant: ${entry.quantity} | Precio: \$${entry.price.toStringAsFixed(2)}\nIngreso: $fechaIngresoStr\nSalida:   $fechaSalidaStr',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                  isThreeLine: true,
-                  trailing: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                return AnimationConfiguration.staggeredList(
+                  position: index,
+                  duration: const Duration(milliseconds: 375),
+                  child: SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(
+                      child: Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          leading: CircleAvatar(
+                            // --- CORRECTED: Use withAlpha for modern opacity ---
+                            backgroundColor: color.withAlpha(25),
+                            child: Icon(icon, color: color, size: 28),
+                          ),
+                          title: Text(
+                            entry.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          subtitle: Text(
+                            'QR: ${entry.qrCode}\nCant: ${entry.quantity} | Ingreso: $fechaIngresoStr | Salida: $fechaSalidaStr',
+                            style: TextStyle(color: Colors.grey.shade700, height: 1.5),
+                          ),
+                          isThreeLine: true,
+                          trailing: Text(
+                            statusText,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),

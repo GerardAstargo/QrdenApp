@@ -1,17 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 
 class Product {
-  final String id;
+  // The true unique ID for the database document.
+  final String internalId;
+  // The QR code, now just a piece of data.
+  final String qrCode;
   final String name;
   final DocumentReference? category;
   final int quantity;
   final double price;
   final Timestamp? fechaIngreso;
-  final String? enteredBy; // Employee who entered the product
-  final String? numeroEstante; // Shelf number where the product is located
+  final String? enteredBy;
+  final String? numeroEstante;
 
   Product({
-    required this.id,
+    String? internalId, // Make optional
+    required this.qrCode, // The scanned QR code
     required this.name,
     this.category,
     required this.quantity,
@@ -19,39 +24,27 @@ class Product {
     this.fechaIngreso,
     this.enteredBy,
     this.numeroEstante,
-  });
+  }) : internalId = internalId ?? const Uuid().v4(); // Generate new ID if not provided
 
-  // Factory constructor to create a Product from a Firestore document
   factory Product.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-    DocumentReference? categoryRef;
-    final categoryData = data['categoria'];
-    if (categoryData is DocumentReference) {
-      categoryRef = categoryData;
-    }
-
-    Timestamp? ingresoTimestamp;
-    final ingresoData = data['fechaingreso'];
-    if (ingresoData is Timestamp) {
-      ingresoTimestamp = ingresoData;
-    }
-
     return Product(
-      id: doc.id,
+      internalId: doc.id, // The document ID from Firestore is our internalId
+      qrCode: data['qrCode'] ?? 'N/A', // Load the QR code
       name: data['nombreproducto'] ?? 'Nombre no disponible',
-      category: categoryRef,
+      category: data['categoria'] is DocumentReference ? data['categoria'] : null,
       quantity: (data['stock'] ?? 0).toInt(),
       price: (data['precio'] ?? 0.0).toDouble(),
-      fechaIngreso: ingresoTimestamp,
+      fechaIngreso: data['fechaingreso'] as Timestamp?,
       enteredBy: data['ingresadoPor'] as String?,
       numeroEstante: data['numeroEstante'] as String?,
     );
   }
 
-  // Method to convert a Product object to a Map for Firestore
   Map<String, dynamic> toFirestore() {
     return {
+      'qrCode': qrCode, // Save the QR code
       'nombreproducto': name,
       'categoria': category,
       'stock': quantity,

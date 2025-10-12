@@ -11,7 +11,8 @@ class ProductDetailScreen extends StatelessWidget {
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'No disponible';
-    return DateFormat('d MMMM y, HH:mm').format(date);
+    // Use a locale-friendly format
+    return DateFormat.yMMMd('es_ES').add_jm().format(date);
   }
 
   @override
@@ -34,11 +35,18 @@ class ProductDetailScreen extends StatelessWidget {
             ),
             children: [
               _buildHeaderCard(context, textTheme),
+              // --- CORRECTED: Use qrCode instead of id ---
               _buildDetailCard(
                 context: context,
                 icon: Icons.qr_code,
-                label: 'Código de Producto',
-                value: product.id,
+                label: 'Código QR',
+                value: product.qrCode,
+              ),
+               _buildDetailCard(
+                context: context,
+                icon: Icons.fingerprint, // Icon for unique ID
+                label: 'ID Interno del Producto',
+                value: product.internalId,
               ),
               _buildDetailCard(
                 context: context,
@@ -58,6 +66,12 @@ class ProductDetailScreen extends StatelessWidget {
                 label: 'Precio',
                 value: '\$${product.price.toStringAsFixed(2)}',
               ),
+               _buildDetailCard(
+                context: context,
+                icon: Icons.business_outlined, 
+                label: 'Número de Estante',
+                value: product.numeroEstante?.toString() ?? 'No especificado',
+              ),
               _buildDetailCard(
                 context: context,
                 icon: Icons.person_outline,
@@ -70,12 +84,6 @@ class ProductDetailScreen extends StatelessWidget {
                 label: 'Fecha de Ingreso',
                 value: _formatDate(product.fechaIngreso?.toDate()),
               ),
-              _buildDetailCard(
-                context: context,
-                icon: Icons.business_outlined, // Icon for "Shelf Number"
-                label: 'Número de Estante',
-                value: product.numeroEstante?.toString() ?? 'No especificado',
-              ),
             ],
           ),
         ),
@@ -86,7 +94,7 @@ class ProductDetailScreen extends StatelessWidget {
   Widget _buildHeaderCard(BuildContext context, TextTheme textTheme) {
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.primary.withAlpha(25), // Modern way to set opacity
+      color: Theme.of(context).colorScheme.primary.withAlpha(25),
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -121,7 +129,7 @@ class ProductDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              backgroundColor: colorScheme.primary.withAlpha(25), // Modern way to set opacity
+              backgroundColor: colorScheme.primary.withAlpha(25),
               foregroundColor: colorScheme.primary,
               child: Icon(icon),
             ),

@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import './firestore_service.dart';
 import './product_model.dart';
 
-enum ScanMode { add, remove, update }
+enum ScanMode { add }
 
 class ScannerScreen extends StatefulWidget {
   final ScanMode scanMode;
@@ -19,54 +19,18 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen> {
   final MobileScannerController _scannerController = MobileScannerController();
-  final FirestoreService _firestoreService = FirestoreService();
   bool _isProcessing = false;
 
-  String get _title {
-    switch (widget.scanMode) {
-      case ScanMode.add: return 'Escanear para Añadir';
-      case ScanMode.remove: return 'Escanear para Eliminar';
-      case ScanMode.update: return 'Escanear para Modificar';
-    }
-  }
+  String get _title => 'Escanear para Añadir';
 
   Future<void> _handleQrCode(String qrCode) async {
     if (!mounted || _isProcessing) return;
     setState(() => _isProcessing = true);
 
-    final product = await _firestoreService.getProductById(qrCode);
-
-    if (!mounted) {
-      setState(() => _isProcessing = false);
-      return;
-    }
-
-    switch (widget.scanMode) {
-      case ScanMode.add:
-        if (product != null) {
-          _showErrorDialog('Este producto ya existe.');
-        } else {
-          await _showProductForm(qrCode: qrCode);
-        }
-        break;
-      case ScanMode.update:
-        if (product == null) {
-          _showErrorDialog('Este producto no existe.');
-        } else {
-          await _showProductForm(product: product);
-        }
-        break;
-      case ScanMode.remove:
-        if (product == null) {
-          _showErrorDialog('Este producto no existe.');
-        } else {
-          await _showDeleteConfirmation(product);
-        }
-        break;
-    }
+    await _showProductForm(qrCode: qrCode);
   }
 
-  Future<void> _showProductForm({String? qrCode, Product? product}) async {
+  Future<void> _showProductForm({required String qrCode}) async {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -75,50 +39,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
         initialChildSize: 0.9,
         minChildSize: 0.5,
         maxChildSize: 0.9,
-        builder: (_, controller) => ProductForm(scrollController: controller, product: product, qrCode: qrCode),
+        builder: (_, controller) => ProductForm(scrollController: controller, qrCode: qrCode),
       ),
     );
 
     if (result == true && mounted) {
-      final message = product == null ? 'Producto añadido con éxito' : 'Producto actualizado con éxito';
-      Navigator.pop(context, message); // Return success message
+      Navigator.pop(context, 'Producto añadido con éxito');
     } else {
       setState(() => _isProcessing = false);
     }
-  }
-
-  Future<void> _showDeleteConfirmation(Product product) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar Eliminación'),
-        content: Text('¿Seguro que quieres eliminar "${product.name}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _firestoreService.deleteProduct(product.id);
-      if (mounted) {
-        Navigator.pop(context, 'Producto eliminado con éxito'); // Return success message
-      }
-    } else {
-      setState(() => _isProcessing = false);
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-      ),
-    ).then((_) => setState(() => _isProcessing = false));
   }
 
   @override
@@ -127,7 +56,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     super.dispose();
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_title)),
@@ -136,11 +65,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
           MobileScanner(
             controller: _scannerController,
             onDetect: (capture) {
+              if (_isProcessing) return;
               final String? qrCode = capture.barcodes.first.rawValue;
               if (qrCode != null) _handleQrCode(qrCode);
             },
           ),
-          // Scanner Overlay
           Container(
             decoration: ShapeDecoration(
               shape: QrScannerOverlayShape(
@@ -152,7 +81,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
               ),
             ),
           ),
-          // Controls
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -160,22 +88,23 @@ class _ScannerScreenState extends State<ScannerScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ValueListenableBuilder(
+                  // --- CORRECTED: Use ValueListenableBuilder correctly ---
+                  ValueListenableBuilder<MobileScannerState>(
                     valueListenable: _scannerController,
                     builder: (context, state, child) {
                       return IconButton(
+                        color: Colors.white,
                         onPressed: () => _scannerController.toggleTorch(),
-                        icon: Icon(
-                          state.torchState == TorchState.on ? Icons.flash_on : Icons.flash_off,
-                          color: Colors.white,
-                        ),
+                        icon: state.torchState == TorchState.on
+                            ? const Icon(Icons.flash_on)
+                            : const Icon(Icons.flash_off),
                         iconSize: 32,
                       );
                     },
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.cancel, color: Colors.white), 
+                    icon: const Icon(Icons.cancel, color: Colors.white),
                     iconSize: 32,
                   ),
                 ],
@@ -188,60 +117,32 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 }
 
+// (QrScannerOverlayShape remains the same)
 class QrScannerOverlayShape extends ShapeBorder {
-  final Color borderColor;
-  final double borderWidth;
-  final double overlayColor;
-  final double borderRadius;
-  final double borderLength;
-  final double cutOutSize;
-
-  const QrScannerOverlayShape({
-    this.borderColor = Colors.white,
-    this.borderWidth = 3.0,
-    this.overlayColor = 0.8,
-    this.borderRadius = 0,
-    this.borderLength = 40,
-    required this.cutOutSize,
-  });
-
+  final Color borderColor; final double borderWidth; final double overlayColor; final double borderRadius; final double borderLength; final double cutOutSize;
+  const QrScannerOverlayShape({ this.borderColor = Colors.white, this.borderWidth = 3.0, this.overlayColor = 0.8, this.borderRadius = 0, this.borderLength = 40, required this.cutOutSize, });
   @override
   EdgeInsetsGeometry get dimensions => const EdgeInsets.all(0);
-
   @override
   Path getInnerPath(Rect rect, {TextDirection? textDirection}) => Path()..addRect(Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height));
-
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
     Path getLeftTopPath(Rect rect) => Path()..moveTo(rect.left, rect.bottom)..lineTo(rect.left, rect.top)..lineTo(rect.right, rect.top);
     return getLeftTopPath(rect)..lineTo(rect.right, rect.bottom)..lineTo(rect.left, rect.bottom)..lineTo(rect.left, rect.top);
   }
-
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
-    final width = rect.width;
-    final height = rect.height;
-    final h = (height - cutOutSize) / 2;
-    final w = (width - cutOutSize) / 2;
-    final background = Paint()..color = Color.fromRGBO(0, 0, 0, overlayColor);
-    final borderPaint = Paint()..color = borderColor..style = PaintingStyle.stroke..strokeWidth = borderWidth;
-    final boxPaint = Paint()..color = Colors.transparent..style = PaintingStyle.fill;
-    final cutOutRect = Rect.fromLTWH(w, h, cutOutSize, cutOutSize);
-
-    canvas.drawRect(Rect.fromLTWH(0, 0, width, height), background);
-    canvas.drawPath(Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, Radius.circular(borderRadius))), boxPaint);
-    canvas.drawPath(Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, Radius.circular(borderRadius))), borderPaint);
+    final background = Paint()..color = Color.fromRGBO(0, 0, 0, overlayColor); final borderPaint = Paint()..color = borderColor..style = PaintingStyle.stroke..strokeWidth = borderWidth; final boxPaint = Paint()..color = Colors.transparent..style = PaintingStyle.fill; final cutOutRect = Rect.fromLTWH((rect.width - cutOutSize) / 2, (rect.height - cutOutSize) / 2, cutOutSize, cutOutSize);
+    canvas.drawRect(Rect.fromLTWH(0, 0, rect.width, rect.height), background); canvas.drawPath(Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, Radius.circular(borderRadius))), boxPaint); canvas.drawPath(Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, Radius.circular(borderRadius))), borderPaint);
   }
-
   @override
   ShapeBorder scale(double t) => this;
 }
 
 class ProductForm extends StatefulWidget {
   final ScrollController scrollController;
-  final Product? product;
-  final String? qrCode;
-  const ProductForm({super.key, required this.scrollController, this.product, this.qrCode});
+  final String qrCode;
+  const ProductForm({super.key, required this.scrollController, required this.qrCode});
 
   @override
   State<ProductForm> createState() => _ProductFormState();
@@ -256,11 +157,7 @@ class _ProductFormState extends State<ProductForm> {
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController(text: widget.product?.name ?? '');
-    _quantity = TextEditingController(text: widget.product?.quantity.toString() ?? '');
-    _price = TextEditingController(text: widget.product?.price.toString() ?? '');
-    _shelfNumber = TextEditingController(text: widget.product?.numeroEstante ?? '');
-    _categoryRef = widget.product?.category;
+    _name = TextEditingController(); _quantity = TextEditingController(); _price = TextEditingController(); _shelfNumber = TextEditingController();
   }
 
   Future<void> _saveProduct() async {
@@ -268,37 +165,30 @@ class _ProductFormState extends State<ProductForm> {
     setState(() => _isLoading = true);
 
     final user = FirebaseAuth.instance.currentUser;
-    final product = Product(
-      id: widget.product?.id ?? widget.qrCode!,
+    final newProduct = Product(
+      qrCode: widget.qrCode,
       name: _name.text,
-      category: _categoryRef!,
-      quantity: int.parse(_quantity.text),
-      price: double.parse(_price.text),
+      category: _categoryRef,
+      quantity: int.tryParse(_quantity.text) ?? 1,
+      price: double.tryParse(_price.text) ?? 0.0,
       numeroEstante: _shelfNumber.text,
-      fechaIngreso: widget.product?.fechaIngreso ?? Timestamp.now(),
+      fechaIngreso: Timestamp.now(),
       enteredBy: user?.displayName ?? user?.email,
     );
 
-    await (widget.product == null 
-        ? FirestoreService().addProduct(product) 
-        : FirestoreService().updateProduct(product));
+    await FirestoreService().addProduct(newProduct);
 
-    if (mounted) {
-      Navigator.pop(context, true);
-    }
+    if (mounted) Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
       child: Column(
         children: [
-          Text(widget.product == null ? 'Añadir Producto' : 'Editar Producto', style: Theme.of(context).textTheme.headlineSmall),
+          Text('Añadir Producto', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 24),
           Expanded(
             child: SingleChildScrollView(
@@ -341,8 +231,8 @@ class _ProductFormState extends State<ProductForm> {
             ),
           ),
           const SizedBox(height: 16),
-          _isLoading 
-              ? const Center(child: CircularProgressIndicator()) 
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
               : Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [

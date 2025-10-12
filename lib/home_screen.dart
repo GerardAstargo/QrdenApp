@@ -9,7 +9,7 @@ import './product_model.dart';
 import './scanner_screen.dart';
 import './product_detail_screen.dart';
 import './category_display_widget.dart';
-import './history_screen.dart'; // Import the new history screen
+import './history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,19 +61,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
-  void _navigateAndScan(ScanMode mode) async { 
-    _toggleFabMenu(); 
-    
+  void _navigateAndScan() async {
+    _toggleFabMenu();
+    // --- CORRECTED: Handle BuildContext across async gap ---
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final result = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (context) => ScannerScreen(scanMode: mode)),
+      MaterialPageRoute(builder: (context) => const ScannerScreen(scanMode: ScanMode.add)),
     );
 
-    if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result),
-          behavior: SnackBarBehavior.floating,
-        ),
+    if (result != null) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(result), behavior: SnackBarBehavior.floating),
       );
     }
   }
@@ -97,7 +95,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       appBar: AppBar(
         title: Text(_welcomeMessage),
         actions: [
-          // New History Button
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Historial',
@@ -150,18 +147,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 child: SlideAnimation(
                   verticalOffset: 50.0,
                   child: FadeInAnimation(
-                    child: Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(25),
-                          child: Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.primary),
+                    child: Dismissible(
+                      key: Key(product.internalId),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) async {
+                        // --- CORRECTED: Handle BuildContext across async gap ---
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        await _firestoreService.deleteProduct(product.internalId);
+                        scaffoldMessenger.showSnackBar(
+                          SnackBar(
+                            content: Text('"${product.name}" ha sido archivado.'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      background: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade700,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: CategoryDisplayWidget(categoryReference: product.category),
-                        trailing: Text('Stock: ${product.quantity}', style: Theme.of(context).textTheme.titleMedium),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: const Icon(Icons.archive_outlined, color: Colors.white),
+                      ),
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(25),
+                            child: Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.primary),
+                          ),
+                          title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: CategoryDisplayWidget(categoryReference: product.category),
+                          trailing: Text('Stock: ${product.quantity}', style: Theme.of(context).textTheme.titleMedium),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
+                          ),
                         ),
                       ),
                     ),
@@ -203,9 +224,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   List<Widget> _buildFabMenuItems() {
     final actions = [
-      FabAction(icon: Icons.add_to_photos_outlined, label: 'Añadir', onPressed: () => _navigateAndScan(ScanMode.add)),
-      FabAction(icon: Icons.remove_from_queue_outlined, label: 'Eliminar', onPressed: () => _navigateAndScan(ScanMode.remove)),
-      FabAction(icon: Icons.edit_note_outlined, label: 'Modificar', onPressed: () => _navigateAndScan(ScanMode.update)),
+      FabAction(icon: Icons.add_to_photos_outlined, label: 'Añadir Producto', onPressed: _navigateAndScan),
       FabAction(icon: Icons.qr_code_2_sharp, label: 'Generar QR', onPressed: _navigateToQrGenerator),
     ];
 
@@ -225,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   Card(elevation: 2, child: Padding(padding: const EdgeInsets.all(8.0), child: Text(actions[index].label))),
                   const SizedBox(width: 8),
                   FloatingActionButton.small(
-                    heroTag: null, 
+                    heroTag: null,
                     onPressed: actions[index].onPressed,
                     child: Icon(actions[index].icon),
                   ),
