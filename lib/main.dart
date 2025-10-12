@@ -39,13 +39,26 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    // --- CORRECTED: Changed Color to MaterialColor ---
-    const MaterialColor primarySeedColor = Colors.deepPurple;
+    // Using a more sophisticated slate blue as the seed color
+    const Color primarySeedColor = Color(0xFF005f73);
 
+    // Using Montserrat for titles and Lato for body text for a modern and readable feel
     final TextTheme appTextTheme = TextTheme(
-      displayLarge: GoogleFonts.oswald(fontSize: 57, fontWeight: FontWeight.bold),
-      titleLarge: GoogleFonts.roboto(fontSize: 22, fontWeight: FontWeight.w500),
-      bodyMedium: GoogleFonts.openSans(fontSize: 14),
+      displayLarge: GoogleFonts.montserrat(fontSize: 57, fontWeight: FontWeight.bold),
+      displayMedium: GoogleFonts.montserrat(fontSize: 45, fontWeight: FontWeight.bold),
+      displaySmall: GoogleFonts.montserrat(fontSize: 36, fontWeight: FontWeight.bold),
+      headlineLarge: GoogleFonts.montserrat(fontSize: 32, fontWeight: FontWeight.bold),
+      headlineMedium: GoogleFonts.montserrat(fontSize: 28, fontWeight: FontWeight.bold),
+      headlineSmall: GoogleFonts.montserrat(fontSize: 24, fontWeight: FontWeight.w600),
+      titleLarge: GoogleFonts.montserrat(fontSize: 22, fontWeight: FontWeight.w600),
+      titleMedium: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w600),
+      titleSmall: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w500),
+      bodyLarge: GoogleFonts.lato(fontSize: 16, fontWeight: FontWeight.normal),
+      bodyMedium: GoogleFonts.lato(fontSize: 14, fontWeight: FontWeight.normal),
+      bodySmall: GoogleFonts.lato(fontSize: 12, fontWeight: FontWeight.normal),
+      labelLarge: GoogleFonts.lato(fontSize: 14, fontWeight: FontWeight.bold),
+      labelMedium: GoogleFonts.lato(fontSize: 12, fontWeight: FontWeight.bold),
+      labelSmall: GoogleFonts.lato(fontSize: 10, fontWeight: FontWeight.bold),
     );
 
     final ThemeData lightTheme = ThemeData(
@@ -58,15 +71,15 @@ class MyApp extends StatelessWidget {
       appBarTheme: AppBarTheme(
         backgroundColor: primarySeedColor,
         foregroundColor: Colors.white,
-        titleTextStyle: GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
+        titleTextStyle: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.w600),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.white,
           backgroundColor: primarySeedColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          textStyle: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          textStyle: GoogleFonts.lato(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -81,16 +94,15 @@ class MyApp extends StatelessWidget {
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.grey[900],
         foregroundColor: Colors.white,
-        titleTextStyle: GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
+        titleTextStyle: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.w600),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.black,
-          // This will now work correctly
-          backgroundColor: primarySeedColor.shade200, 
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          textStyle: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
+          foregroundColor: Colors.white,
+          backgroundColor: primarySeedColor.withAlpha(200), // Adjusted for a nice dark theme effect
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          textStyle: GoogleFonts.lato(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );

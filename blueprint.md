@@ -9,86 +9,76 @@ Construida con Flutter y Firebase, Qrden ofrece una experiencia de usuario fluid
 
 ---
 
-## 2. Características Principales
+## 2. Plan para la Solicitud Actual (Rediseño y Mejora Funcional)
 
-- **Autenticación Segura:**
-  - Inicio de sesión de usuarios a través de correo electrónico y contraseña, gestionado por **Firebase Authentication**.
-  - Persistencia de la sesión para una experiencia de usuario continua.
+Esta sección describe los cambios que se implementarán en la versión actual, basados en la última solicitud del usuario.
 
-- **Gestión Completa de Inventario:**
-  - **Añadir:** Escanea un código QR único para dar de alta un nuevo producto, rellenando sus detalles en un formulario modal.
-  - **Modificar:** Escanea el QR de un producto existente para editar su información.
-  - **Eliminar:** Escanea el QR de un producto para confirmar su eliminación del inventario.
-  - **Visualización:** Una lista principal muestra en tiempo real todos los productos del inventario, con su nombre, categoría y stock.
+**A. Renovación del Diseño Visual:**
+- **Objetivo:** Modernizar la interfaz para que sea más elegante y sofisticada.
+- **Paleta de Colores:** Se migrará del `Colors.deepPurple` a un azul pizarra (`#005f73`) como color semilla para generar una paleta más profesional.
+- **Tipografía:** Se implementará una combinación de fuentes más refinada:
+    - **Montserrat** para títulos y encabezados, aportando un estilo moderno y limpio.
+    - **Lato** para el cuerpo de texto, garantizando una legibilidad óptima.
+- **Estilo de Componentes:** Se ajustarán los estilos de tarjetas, botones y otros elementos para que armonicen con la nueva estética.
 
-- **Escáner y Generador de QR:**
-  - **Escáner Inteligente:** Utiliza la cámara del dispositivo (`mobile_scanner`) para detectar códigos QR. El modo de escaneo (Añadir, Modificar, Eliminar) se selecciona a través de un menú FAB expandible.
-  - **Generador de QR:** Crea códigos QR únicos (`qr_flutter`) para identificar nuevos productos que aún no tienen uno.
-
-- **Detalles del Producto:**
-  - Una vista dedicada muestra toda la información de un producto: nombre, categoría, stock, precio, fecha de ingreso, usuario que lo ingresó y número de estante.
-
-- **Perfil de Usuario:**
-  - Pantalla donde el usuario puede ver su nombre y correo electrónico.
-  - Funcionalidad para cerrar sesión de forma segura.
-
-- **Tema Dinámico y Moderno:**
-  - Soporte para **modos claro y oscuro**, con un interruptor para que el usuario elija su preferencia.
-  - Paleta de colores profesional y consistente basada en Material 3.
+**B. Mejora de la Lógica de Gestión de Productos:**
+- **Objetivo:** Hacer la gestión de productos más clara e intuitiva.
+- **Botón "Eliminar":** El antiguo botón de "Archivar" se convertirá en un botón de "Eliminar" (icono de papelera), que **borrará permanentemente** el producto de la base de datos, previa confirmación del usuario.
+- **Botón "Modificar":** Se añadirá un nuevo botón "Modificar" (icono de lápiz) en la pantalla de detalles. Este permitirá editar **toda la información de un producto existente**, incluyendo el ajuste de stock, reutilizando el formulario de creación de productos.
 
 ---
 
-## 3. Arquitectura de la Aplicación
+## 3. Características Principales (Actualizadas)
+
+- **Autenticación Segura:**
+  - Inicio de sesión con correo y contraseña (`Firebase Authentication`).
+- **Gestión Completa de Inventario:**
+  - **Añadir:** Escanea un QR para dar de alta un nuevo producto.
+  - **Modificar:** Edita la información completa de un producto, incluido el stock, desde un formulario dedicado.
+  - **Eliminar:** Escanea un QR o usa un botón en la pantalla de detalles para **eliminar permanentemente** un producto.
+  - **Visualización:** Lista en tiempo real de todos los productos.
+- **Escáner y Generador de QR:**
+  - Escáner con `mobile_scanner` y generador con `qr_flutter`.
+- **Detalles del Producto:**
+  - Vista dedicada con toda la información del producto.
+- **Perfil de Usuario:**
+  - Pantalla para ver datos de la cuenta y cerrar sesión.
+
+---
+
+## 4. Arquitectura de la Aplicación
 
 Qrden sigue una arquitectura limpia y por capas para garantizar la separación de responsabilidades, la mantenibilidad y la escalabilidad.
 
-- **Gestión de Estado:**
-  - **`provider`:** Se utiliza para la gestión de estado a nivel de aplicación, principalmente para manejar el cambio de tema (claro/oscuro).
-  - **`StatefulWidget` y `ValueNotifier`:** Para gestionar el estado local y efímero dentro de los widgets, como las animaciones del FAB o el estado de la linterna del escáner.
-
+- **Gestión de Estado:** `provider` para el estado global (tema) y `StatefulWidget` para el estado local.
 - **Flujo de Datos y Servicios:**
-  - **Capa de Presentación (UI):** Compuesta por todos los widgets y pantallas. Es responsable de mostrar los datos y capturar la interacción del usuario.
-  - **Capa de Servicio (`firestore_service.dart`):** Actúa como un intermediario entre la UI y Firebase. Centraliza y abstrae toda la lógica de acceso a datos (lectura, escritura, actualización y eliminación en Firestore), ofreciendo una API limpia al resto de la aplicación.
-  - **Capa de Modelo de Datos (`product_model.dart`):** Define la estructura del objeto `Product` con una lógica de serialización/deserialización robusta (`fromFirestore`, `toFirestore`) para garantizar la coherencia de los datos entre la app y la base de datos.
-  - **Logging:** Se utiliza `dart:developer` para un registro de errores estructurado y profesional, especialmente útil para depurar problemas en la capa de servicio.
-
-- **Navegación:**
-  - **`MaterialPageRoute`:** Para la navegación imperativa y estándar entre pantallas.
-  - **`AuthWrapper`:** Un widget inteligente que actúa como un guardián de rutas, decidiendo qué pantalla mostrar (Login o Home) basándose en el estado de autenticación del usuario en tiempo real.
+  - **Capa de Presentación (UI):** Widgets y pantallas.
+  - **Capa de Servicio (`firestore_service.dart`):** Abstrae la lógica de acceso a datos de Firestore.
+  - **Capa de Modelo de Datos (`product_model.dart`):** Define la estructura del objeto `Product`.
+- **Navegación:** `MaterialPageRoute` y un `AuthGate` para gestionar las rutas según el estado de autenticación.
 
 ---
 
-## 4. Diseño Visual y Tema (Theming)
+## 5. Diseño Visual y Tema (Theming - Actualizado)
 
-El diseño de Qrden se centra en la claridad, la modernidad y una experiencia de usuario agradable.
+El diseño de Qrden se centra en la claridad, la modernidad y una experiencia de usuario elegante.
 
 - **Esquema de Color:**
   - Basado en **Material 3 (`useMaterial3: true`)**.
-  - Utiliza `ColorScheme.fromSeed` con un color primario verde oscuro (`#2E7D32`) para generar paletas armoniosas y consistentes tanto para el modo claro como para el oscuro.
-  - Se evita el uso de `withOpacity`, favoreciendo `withAlpha` para un control más moderno y predecible de la transparencia.
-
+  - Utiliza `ColorScheme.fromSeed` con un color semilla **azul pizarra (`#005f73`)** para generar paletas armoniosas.
 - **Tipografía:**
-  - La fuente **Inter**, obtenida a través de `google_fonts`, se utiliza en toda la aplicación para una legibilidad excelente y una estética moderna.
-  - La jerarquía de texto está bien definida en el `TextTheme` para títulos, subtítulos y cuerpo de texto.
-
+  - **Montserrat** para títulos y **Lato** para el cuerpo de texto, usando `google_fonts`.
+  - Jerarquía de texto bien definida en el `TextTheme`.
 - **Estilo de Componentes:**
-  - Se definen temas específicos (`appBarTheme`, `elevatedButtonTheme`, `cardTheme`, etc.) para garantizar una apariencia visual unificada en todos los componentes de Material Design.
-  - Los `Card` tienen una elevación sutil y bordes redondeados.
-  - Los `InputDecoration` son limpios, con un fondo relleno y bordes redondeados.
-
+  - Temas específicos para `AppBar`, `ElevatedButton`, `Card`, etc., garantizando una apariencia unificada.
 - **Animaciones:**
-  - Se utilizan `flutter_staggered_animations` para animar la aparición de las listas (FadeIn y Slide), haciendo la interfaz más dinámica.
-  - Se emplean `animations` para transiciones suaves entre pantallas (FadeThroughTransition).
+  - `flutter_staggered_animations` y `animations` para enriquecer la experiencia de usuario.
 
 ---
 
-## 5. Dependencias Clave
+## 6. Dependencias Clave
 
-- **`firebase_core`, `firebase_auth`, `cloud_firestore`:** El stack de Firebase para backend, autenticación y base de datos NoSQL en tiempo real.
-- **`provider`:** Para una gestión de estado simple y eficaz.
-- **`mobile_scanner`:** La librería principal para la funcionalidad de escaneo de códigos QR.
-- **`qr_flutter`:** Para la generación de imágenes de códigos QR dentro de la app.
-- **`google_fonts`:** Para cargar y utilizar fuentes personalizadas de manera sencilla.
-- **`intl`:** Para el formateo de fechas y números.
-- **`flutter_staggered_animations`, `animations`:** Para enriquecer la experiencia de usuario con animaciones elegantes.
-
+- **Firebase:** `firebase_core`, `firebase_auth`, `cloud_firestore`.
+- **Estado y Utilidades:** `provider`, `intl`.
+- **UI y Diseño:** `google_fonts`, `mobile_scanner`, `qr_flutter`.
+- **Animaciones:** `flutter_staggered_animations`, `animations`.

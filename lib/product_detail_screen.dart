@@ -1,62 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import './product_model.dart';
-import './firestore_service.dart';
-import './category_display_widget.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
-class ProductDetailScreen extends StatefulWidget {
+import './firestore_service.dart';
+import './product_model.dart';
+import './category_display_widget.dart';
+import './scanner_screen.dart';
+
+class ProductDetailScreen extends StatelessWidget {
   final Product product;
+
   const ProductDetailScreen({super.key, required this.product});
 
-  @override
-  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
-}
+  Future<void> _deleteProduct(BuildContext context) async {
+    final navigator = Navigator.of(context);
 
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  late Product _product; 
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Eliminación'),
+          content: Text('¿Estás seguro de que quieres eliminar permanentemente el producto \'${product.name}\'? Esta acción no se puede deshacer.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
 
-  @override
-  void initState() {
-    super.initState();
-    _product = widget.product;
+    if (confirmed == true) {
+      await FirestoreService().deleteProduct(product.id, product.name);
+      navigator.pop();
+    }
   }
 
-  Future<void> _archiveProduct() async {
-    final shouldArchive = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Archivar Producto'),
-        content: Text('¿Estás seguro de que quieres archivar "${_product.name}"? Esta acción registrará su salida del inventario.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Archivar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
+  void _navigateToEditScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ScannerScreen(
+          scanMode: 'edit',
+          productToEdit: product,
+        ),
       ),
-    ) ?? false;
-
-    if (shouldArchive) {
-      await FirestoreService().archiveProduct(_product.id);
-      if (mounted) {
-        Navigator.pop(context, 'Producto archivado con éxito');
-      }
-    }
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('dd/MM/yyyy, HH:mm');
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(_product.name),
+        title: Text(product.name, style: Theme.of(context).appBarTheme.titleTextStyle),
         actions: [
           IconButton(
-            icon: const Icon(Icons.archive_outlined),
-            tooltip: 'Archivar Producto',
-            onPressed: _archiveProduct,
+            icon: const Icon(Icons.edit),
+            tooltip: 'Modificar Producto',
+            onPressed: () => _navigateToEditScreen(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Eliminar Producto',
+            onPressed: () => _deleteProduct(context),
           ),
         ],
       ),
@@ -65,62 +77,74 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _buildDetailCard('Información General', [
-              _buildInfoRow(Icons.qr_code, 'QR Code', _product.id),
-              _buildInfoRow(Icons.label, 'Nombre', _product.name),
-              _buildInfoRow(Icons.inventory, 'Stock Actual', _product.quantity.toString()),
-              _buildInfoRow(Icons.sell, 'Precio', 'S/ ${_product.price.toStringAsFixed(2)}'),
-              _buildInfoRow(Icons.storage, 'Nº de Estante', _product.numeroEstante ?? 'No especificado'),
-            ]),
-            const SizedBox(height: 16),
-            _buildDetailCard('Categoría', [
-              _product.category != null 
-                ? CategoryDisplayWidget(categoryReference: _product.category!) 
-                : const Text('No especificada'),
-            ]),
-            const SizedBox(height: 16),
-            _buildDetailCard('Registro', [
-              _buildInfoRow(Icons.person, 'Ingresado por', _product.enteredBy ?? 'Desconocido'),
-              _buildInfoRow(
-                Icons.calendar_today,
-                'Fecha de Ingreso',
-                _product.fechaIngreso != null ? dateFormat.format(_product.fechaIngreso!.toDate()) : 'No registrada',
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(
+                  child: QrImageView(
+                    data: product.id,
+                    version: QrVersions.auto,
+                    size: 200.0,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
               ),
-            ]),
+            ),
+            const SizedBox(height: 24),
+            _buildDetailCard(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailCard(String title, List<Widget> children) {
+  Widget _buildDetailCard(BuildContext context) {
+    final formattedDate = product.fechaIngreso != null
+        ? DateFormat('dd/MM/yyyy, HH:mm').format(product.fechaIngreso!.toDate())
+        : 'No disponible';
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            const Divider(height: 20, thickness: 1),
-            ...children,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _buildInfoRow(context, 'Stock:', '${product.quantity} unidades', icon: Icons.inventory_2),
+            const Divider(),
+            _buildInfoRow(context, 'Precio:', NumberFormat.simpleCurrency().format(product.price), icon: Icons.attach_money),
+            const Divider(),
+            if (product.category != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(children: [ const Icon(Icons.category, color: Colors.grey, size: 20), const SizedBox(width: 16), CategoryDisplayWidget(categoryReference: product.category!) ])
+              ),
+            const Divider(),
+            _buildInfoRow(context, 'Nº Estante:', product.numeroEstante ?? 'No asignado', icon: Icons.shelves),
+            const Divider(),
+            _buildInfoRow(context, 'Fecha Ingreso:', formattedDate, icon: Icons.calendar_today),
+            const Divider(),
+            _buildInfoRow(context, 'Ingresado por:', product.enteredBy ?? 'Desconocido', icon: Icons.person),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value, {required IconData icon}) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
           Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
           const SizedBox(width: 16),
-          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: Text(value, textAlign: TextAlign.end)),
+          Text('$label ', style: textTheme.titleMedium),
+          const Spacer(),
+          Flexible(child: Text(value, style: textTheme.bodyLarge, textAlign: TextAlign.end)),
         ],
       ),
     );
