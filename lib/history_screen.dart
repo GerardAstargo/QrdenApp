@@ -41,33 +41,48 @@ class HistoryScreen extends StatelessWidget {
             itemCount: entries.length,
             itemBuilder: (context, index) {
               final entry = entries[index];
-              final isEntry = entry.accion == 'entrada';
-              final icon = isEntry ? Icons.arrow_downward : Icons.arrow_upward;
-              final color = isEntry ? Colors.green : Colors.red;
-              final formattedDate = DateFormat('dd/MM/yyyy, HH:mm').format(entry.fechaMovimiento.toDate());
+              
+              // NEW LOGIC: Check if fechaSalida is null
+              final bool isProductActive = entry.fechaSalida == null;
+              final IconData icon = isProductActive ? Icons.file_download_done_rounded : Icons.archive_rounded;
+              final Color color = isProductActive ? Colors.green.shade700 : Colors.red.shade700;
+              final String statusText = isProductActive ? 'ACTIVO' : 'ARCHIVADO';
+
+              // Format dates
+              final format = DateFormat('dd/MM/yy, HH:mm');
+              final String fechaIngresoStr = format.format(entry.fechaIngreso.toDate());
+              final String fechaSalidaStr = entry.fechaSalida != null 
+                  ? format.format(entry.fechaSalida!.toDate())
+                  : '--/--/--';
 
               return Card(
                 elevation: 3,
                 margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: color.withOpacity(0.5), width: 1),
+                ),
                 child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   leading: CircleAvatar(
-                    backgroundColor: color,
-                    child: Icon(icon, color: Colors.white),
+                    backgroundColor: color.withOpacity(0.15),
+                    child: Icon(icon, color: color, size: 28),
                   ),
                   title: Text(
                     entry.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   subtitle: Text(
-                    'Cantidad: ${entry.quantity} | Precio: \$${entry.price.toStringAsFixed(2)}\nFecha: $formattedDate',
+                    'Cant: ${entry.quantity} | Precio: \$${entry.price.toStringAsFixed(2)}\nIngreso: $fechaIngresoStr\nSalida:   $fechaSalidaStr',
+                    style: TextStyle(color: Colors.grey.shade600),
                   ),
                   isThreeLine: true,
                   trailing: Text(
-                    entry.accion.toUpperCase(),
+                    statusText,
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 12,
                     ),
                   ),
                 ),
