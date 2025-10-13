@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
+import '../models/history_model.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
 
@@ -8,14 +9,49 @@ class FirestoreService {
 
   final String _productsCollection = 'producto';
   final String _categoriesCollection = 'categoria';
+  final String _historyCollection = 'registro';
 
+  // When a product is added, create a history entry with an entry date.
   Future<void> addProduct(Product product) async {
     final productRef = _db.collection(_productsCollection).doc(product.id);
     await productRef.set(product.toFirestore());
+
+    final historyRef = _db.collection(_historyCollection).doc(product.id);
+    final historyData = product.toFirestore();
+    historyData['fecha_ingreso'] = product.fechaIngreso;
+    historyData['fecha_salida'] = null;
+
+    await historyRef.set(historyData);
   }
 
+  // When a product is deleted, update its history entry with an exit date.
   Future<void> deleteProduct(String id) async {
     await _db.collection(_productsCollection).doc(id).delete();
+
+    final historyRef = _db.collection(_historyCollection).doc(id);
+    await historyRef.update({'fecha_salida': Timestamp.now()});
+  }
+
+  Stream<List<HistoryEntry>> getHistoryEntries() {
+    return _db
+        .collection(_historyCollection)
+        .orderBy('fecha_ingreso', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        try {
+          return HistoryEntry.fromFirestore(doc);
+        } catch (e, s) {
+          developer.log(
+            'Failed to parse history entry with ID: ${doc.id}',
+            name: 'FirestoreService.getHistoryEntries',
+            error: e,
+            stackTrace: s,
+          );
+          return null;
+        }
+      }).where((entry) => entry != null).cast<HistoryEntry>().toList();
+    });
   }
 
   Stream<List<Product>> getProducts() {
@@ -58,10 +94,12 @@ class FirestoreService {
   }
 
   Future<void> updateProduct(Product product) async {
+    await _db.collection(_historyCollection).doc(product.id).update(product.toFirestore());
     await _db.collection(_productsCollection).doc(product.id).update(product.toFirestore());
   }
 
   Future<void> updateStock(String id, int newQuantity) {
+    _db.collection(_historyCollection).doc(id).update({'stock': newQuantity});
     return _db.collection(_productsCollection).doc(id).update({'stock': newQuantity});
   }
 }
