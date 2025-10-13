@@ -1,177 +1,145 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:animations/animations.dart';
 
 import 'firebase_options.dart';
-import './login_screen.dart';
-import './home_screen.dart';
+import 'services/auth_service.dart';
+import 'theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
-      child: const QrdenApp(),
+      child: const MyApp(),
     ),
   );
 }
 
-class ThemeProvider with ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.light; // Default to light mode
-
-  ThemeMode get themeMode => _themeMode;
-
-  void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
-  }
-}
-
-class QrdenApp extends StatelessWidget {
-  const QrdenApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color primarySeedColor = Color(0xFF2E7D32); // A deep green
-    final textTheme = GoogleFonts.interTextTheme(Theme.of(context).textTheme);
+    const MaterialColor primarySeedColor = Colors.deepPurple;
 
-    // --- Light Theme ---
-    final lightColorScheme = ColorScheme.fromSeed(
-      seedColor: primarySeedColor,
-      brightness: Brightness.light,
+    // Define a common TextTheme to be used in both light and dark themes
+    final TextTheme appTextTheme = TextTheme(
+      displayLarge: GoogleFonts.oswald(fontSize: 57, fontWeight: FontWeight.bold),
+      displayMedium: GoogleFonts.oswald(fontSize: 45, fontWeight: FontWeight.w400),
+      displaySmall: GoogleFonts.oswald(fontSize: 36, fontWeight: FontWeight.w400),
+      headlineLarge: GoogleFonts.roboto(fontSize: 32, fontWeight: FontWeight.bold),
+      headlineMedium: GoogleFonts.roboto(fontSize: 28, fontWeight: FontWeight.w500),
+      headlineSmall: GoogleFonts.roboto(fontSize: 24, fontWeight: FontWeight.w500),
+      titleLarge: GoogleFonts.oswald(fontSize: 22, fontWeight: FontWeight.bold),
+      titleMedium: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 0.15),
+      titleSmall: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.1),
+      bodyLarge: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5),
+      bodyMedium: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5),
+      bodySmall: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.w400, height: 1.5),
+      labelLarge: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 1.25),
+      labelMedium: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.w400, letterSpacing: 0.5),
+      labelSmall: GoogleFonts.roboto(fontSize: 10, fontWeight: FontWeight.w400, letterSpacing: 1.5),
     );
-    final lightTheme = ThemeData(
+
+    // --- Light Theme Definition ---
+    final ThemeData lightTheme = ThemeData(
       useMaterial3: true,
-      colorScheme: lightColorScheme,
-      textTheme: textTheme,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primarySeedColor,
+        brightness: Brightness.light,
+      ),
+      textTheme: appTextTheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: lightColorScheme.surface,
-        elevation: 0,
-        titleTextStyle: textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: lightColorScheme.onSurface,
-        ),
-        iconTheme: IconThemeData(color: lightColorScheme.onSurface),
+        backgroundColor: primarySeedColor,
+        foregroundColor: Colors.white,
+        titleTextStyle: GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: lightColorScheme.primary,
-          foregroundColor: lightColorScheme.onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+          foregroundColor: Colors.white,
+          backgroundColor: primarySeedColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          textStyle: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
         ),
       ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primarySeedColor,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
       cardTheme: CardThemeData(
-        elevation: 1,
+        elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         clipBehavior: Clip.antiAlias,
       ),
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: primarySeedColor, width: 2.0),
+          borderRadius: BorderRadius.circular(8),
         ),
-        filled: true,
-        fillColor: lightColorScheme.surfaceContainerHighest.withAlpha(128),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: lightColorScheme.primary,
-        foregroundColor: lightColorScheme.onPrimary,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
 
-    // --- Dark Theme ---
-    final darkColorScheme = ColorScheme.fromSeed(
-      seedColor: primarySeedColor,
-      brightness: Brightness.dark,
-    );
-    final darkTheme = ThemeData(
+    // --- Dark Theme Definition ---
+    final ThemeData darkTheme = ThemeData(
       useMaterial3: true,
-      colorScheme: darkColorScheme,
-      textTheme: textTheme,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primarySeedColor,
+        brightness: Brightness.dark,
+        // You can fine-tune dark theme colors here if needed
+      ),
+
+      textTheme: appTextTheme, // Re-use the same text theme for consistency
+
       appBarTheme: AppBarTheme(
-        backgroundColor: darkColorScheme.surface,
-        elevation: 0,
-        titleTextStyle: textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: darkColorScheme.onSurface,
-        ),
-        iconTheme: IconThemeData(color: darkColorScheme.onSurface),
+        titleTextStyle: GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: darkColorScheme.primary,
-          foregroundColor: darkColorScheme.onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+          foregroundColor: Colors.white,
+          backgroundColor: primarySeedColor.shade300,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          textStyle: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
         ),
       ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primarySeedColor.shade300,
+        foregroundColor: Colors.black,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
       cardTheme: CardThemeData(
-        elevation: 1,
+        elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         clipBehavior: Clip.antiAlias,
       ),
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: primarySeedColor.shade300, width: 2.0),
+          borderRadius: BorderRadius.circular(8),
         ),
-        filled: true,
-        fillColor: darkColorScheme.surfaceContainerHighest.withAlpha(128),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: darkColorScheme.primary,
-        foregroundColor: darkColorScheme.onPrimary,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
 
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'Qrden',
+          title: 'StockMaster',
+          debugShowCheckedModeBanner: false,
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: themeProvider.themeMode,
           home: const AuthWrapper(),
-          debugShowCheckedModeBanner: false,
-        );
-      },
-    );
-  }
-}
-
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        return PageTransitionSwitcher(
-          duration: const Duration(milliseconds: 500),
-          transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
-            return FadeThroughTransition(
-              animation: primaryAnimation,
-              secondaryAnimation: secondaryAnimation,
-              child: child,
-            );
-          },
-          child: snapshot.hasData ? const HomeScreen() : const LoginScreen(),
         );
       },
     );

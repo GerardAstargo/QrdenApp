@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:provider/provider.dart';
 
-import './qr_generator_screen.dart';
-import './profile_screen.dart';
-import './firestore_service.dart';
-import './product_model.dart';
-import './scanner_screen.dart';
-import './product_detail_screen.dart';
-import './category_display_widget.dart';
-import './history_screen.dart';
+import 'theme_provider.dart';
+import 'qr_generator_screen.dart';
+import 'profile_screen.dart';
+import 'services/firestore_service.dart';
+import 'models/product_model.dart';
+import 'scanner_screen.dart';
+import 'product_detail_screen.dart';
+import 'widgets/category_display_widget.dart';
+import 'history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -98,13 +100,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       key: const Key('homeScreenScaffold'),
       appBar: AppBar(
-        title: Text(_welcomeMessage),
+        title: Text(_welcomeMessage, style: Theme.of(context).appBarTheme.titleTextStyle),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: Icon(themeProvider.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            tooltip: 'Cambiar Tema',
+            onPressed: () => themeProvider.toggleTheme(!themeProvider.isDarkMode),
+          ),
+          IconButton(
+            icon: const Icon(Icons.history_outlined),
             tooltip: 'Historial',
             onPressed: _navigateToHistory,
           ),
@@ -133,11 +142,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           return Center(child: Text('Error al cargar productos: ${snapshot.error}'));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-            child: Text(
-              'Tu inventario está vacío.\n¡Añade un producto para empezar!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'Tu inventario está vacío',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '¡Añade un producto para empezar!',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade500),
+                ),
+              ],
             ),
           );
         }
@@ -145,32 +166,32 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         final products = snapshot.data!;
         return AnimationLimiter(
           child: ListView.builder(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(12.0),
             itemCount: products.length,
             itemBuilder: (context, index) {
               final product = products[index];
               return AnimationConfiguration.staggeredList(
                 position: index,
-                duration: const Duration(milliseconds: 375),
+                duration: const Duration(milliseconds: 400),
                 child: SlideAnimation(
-                  verticalOffset: 50.0,
+                  verticalOffset: 70.0,
                   child: FadeInAnimation(
                     child: Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 6.0),
+                      elevation: 3.0,
+                      margin: const EdgeInsets.symmetric(vertical: 8.0),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                         leading: CircleAvatar(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary.withAlpha(25),
-                          child: Icon(Icons.qr_code_scanner,
-                              color: Theme.of(context).colorScheme.primary),
+                          radius: 28,
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          child: Icon(Icons.qr_code_scanner_rounded,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer),
                         ),
-                        title: Text(product.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle:
-                            CategoryDisplayWidget(categoryReference: product.category),
+                        title: Text(product.name, style: Theme.of(context).textTheme.titleLarge),
+                        subtitle: CategoryDisplayWidget(categoryReference: product.category),
                         trailing: Text('Stock: ${product.quantity}',
-                            style: Theme.of(context).textTheme.titleMedium),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.secondary)),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (context) =>
@@ -192,12 +213,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
-        // Semi-transparent overlay
         if (_isFabMenuOpen)
           GestureDetector(
-            onTap: _toggleFabMenu, // Close menu on overlay tap
+            onTap: _toggleFabMenu,
             child: Container(
-              color: Colors.black.withAlpha(128),
+              color: Colors.black.withAlpha(150),
               width: double.infinity,
               height: double.infinity,
             ),
@@ -205,7 +225,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ..._buildFabMenuItems(),
         FloatingActionButton(
           onPressed: _toggleFabMenu,
-          elevation: 4,
           child: AnimatedIcon(
             icon: AnimatedIcons.menu_close,
             progress: _fabAnimationController,
@@ -217,31 +236,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   List<Widget> _buildFabMenuItems() {
     final actions = [
-      FabAction(
-          icon: Icons.add_to_photos_outlined,
-          label: 'Añadir',
-          onPressed: () => _navigateAndScan(ScanMode.add)),
-      FabAction(
-          icon: Icons.remove_from_queue_outlined,
-          label: 'Eliminar',
-          onPressed: () => _navigateAndScan(ScanMode.remove)),
-      FabAction(
-          icon: Icons.edit_note_outlined,
-          label: 'Modificar',
-          onPressed: () => _navigateAndScan(ScanMode.update)),
-      FabAction(
-          icon: Icons.qr_code_2_sharp,
-          label: 'Generar QR',
-          onPressed: _navigateToQrGenerator),
+      FabAction(icon: Icons.add_to_photos_outlined, label: 'Añadir', onPressed: () => _navigateAndScan(ScanMode.add)),
+      FabAction(icon: Icons.remove_from_queue_outlined, label: 'Eliminar', onPressed: () => _navigateAndScan(ScanMode.remove)),
+      FabAction(icon: Icons.edit_note_outlined, label: 'Modificar', onPressed: () => _navigateAndScan(ScanMode.update)),
+      FabAction(icon: Icons.qr_code_2_sharp, label: 'Generar QR', onPressed: _navigateToQrGenerator),
     ];
 
     return List.generate(actions.length, (index) {
       return AnimatedBuilder(
         animation: _fabAnimationController,
         builder: (context, child) {
-          final bottom = 65.0 + (index * 60.0) * _fabAnimationController.value;
+          final bottom = 70.0 + (index * 65.0) * _fabAnimationController.value;
           return Positioned(
-            right: 4.0,
+            right: 8.0,
             bottom: bottom,
             child: Opacity(
               opacity: _fabAnimationController.value,
@@ -250,11 +257,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 children: [
                   if (_isFabMenuOpen)
                     Card(
-                        elevation: 2,
-                        child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(actions[index].label))),
-                  const SizedBox(width: 8),
+                      elevation: 2,
+                      child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Text(actions[index].label, style: Theme.of(context).textTheme.labelLarge))),
+                  const SizedBox(width: 12),
                   FloatingActionButton.small(
                     heroTag: 'fab_action_$index',
                     onPressed: actions[index].onPressed,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import './product_model.dart';
-import './category_display_widget.dart';
+import 'models/product_model.dart';
+import 'widgets/category_display_widget.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;

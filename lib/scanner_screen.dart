@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import './firestore_service.dart';
-import './product_model.dart';
+import 'services/firestore_service.dart';
+import 'models/product_model.dart';
 
 enum ScanMode { add, remove, update }
 
