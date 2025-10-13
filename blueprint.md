@@ -21,8 +21,10 @@ Construida con Flutter y Firebase, Qrden ofrece una experiencia de usuario fluid
   - **Eliminar:** Escanea el QR de un producto para confirmar su eliminación del inventario.
   - **Visualización:** Una lista principal muestra en tiempo real todos los productos del inventario, con su nombre, categoría y stock.
   - **Búsqueda de Productos:**
-    - Una barra de búsqueda integrada en la pantalla principal permite a los usuarios filtrar la lista de productos por nombre en tiempo real.
-    - La búsqueda es accesible a través de un icono en el `AppBar` y no distingue entre mayúsculas y minúsculas para una mayor comodidad.
+    - Una barra de búsqueda fija y estilizada está integrada directamente en el `AppBar` como elemento principal, ofreciendo acceso inmediato a la funcionalidad de búsqueda.
+    - Filtra la lista de productos por nombre en tiempo real a medida que el usuario escribe.
+    - La búsqueda no distingue entre mayúsculas y minúsculas para una mayor comodidad.
+    - Incluye un icono de búsqueda y un botón para limpiar el campo de texto fácilmente.
     - Se muestra un mensaje claro cuando la búsqueda no arroja resultados.
 
 

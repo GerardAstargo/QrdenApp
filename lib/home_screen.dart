@@ -23,14 +23,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
-  
+
   late AnimationController _fabAnimationController;
-  
+
   String _welcomeMessage = 'Bienvenido';
   String _searchQuery = '';
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
-  bool _isSearching = false;
   bool _isFabMenuOpen = false;
 
   @override
@@ -83,15 +82,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = !_isSearching;
-      if (!_isSearching) {
-        _searchController.clear();
-      }
-    });
-  }
-  
   void _toggleFabMenu() {
     setState(() {
       _isFabMenuOpen = !_isFabMenuOpen;
@@ -143,31 +133,50 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Scaffold(
       key: const Key('homeScreenScaffold'),
       appBar: _buildAppBar(context, themeProvider),
-      body: _buildProductList(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+            child: Text(
+              _welcomeMessage,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(child: _buildProductList()),
+        ],
+      ),
       floatingActionButton: _buildExpandableFab(context),
     );
   }
 
   AppBar _buildAppBar(BuildContext context, ThemeProvider themeProvider) {
     return AppBar(
-      title: _isSearching
-          ? TextField(
-              controller: _searchController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'Buscar producto...',
-                border: InputBorder.none,
-                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withAlpha(179)),
-              ),
-              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 18),
-            )
-          : Text(_welcomeMessage, style: Theme.of(context).appBarTheme.titleTextStyle),
-      actions: [
-        IconButton(
-          icon: Icon(_isSearching ? Icons.close : Icons.search),
-          tooltip: 'Buscar',
-          onPressed: _toggleSearch,
+      title: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface.withAlpha(150),
+          borderRadius: BorderRadius.circular(20),
         ),
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search, size: 20),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 20),
+                    onPressed: () {
+                      _searchController.clear();
+                    },
+                  )
+                : null,
+            hintText: 'Buscar en el inventario...',
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+          ),
+        ),
+      ),
+      actions: [
         IconButton(
           icon: Icon(themeProvider.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
           tooltip: 'Cambiar Tema',
@@ -188,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ],
     );
   }
-
 
   Widget _buildProductList() {
     return StreamBuilder<List<Product>>(
@@ -223,10 +231,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         }
 
         _allProducts = snapshot.data!;
-        _filterProducts(); // Filter initially and on every rebuild from stream
+        _filterProducts();
 
         if (_filteredProducts.isEmpty && _searchQuery.isNotEmpty) {
-           return Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -236,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   'No se encontraron productos',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                 Text(
+                Text(
                   'No hay productos que coincidan con "$_searchQuery".',
                   style: Theme.of(context).textTheme.bodyLarge,
                   textAlign: TextAlign.center,
@@ -248,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
         return AnimationLimiter(
           child: ListView.builder(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.fromLTRB(12.0, 0, 12.0, 12.0),
             itemCount: _filteredProducts.length,
             itemBuilder: (context, index) {
               final product = _filteredProducts[index];
