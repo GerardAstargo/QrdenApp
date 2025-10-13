@@ -42,13 +42,11 @@ class HistoryScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final entry = entries[index];
               
-              // NEW LOGIC: Check if fechaSalida is null
               final bool isProductActive = entry.fechaSalida == null;
               final IconData icon = isProductActive ? Icons.file_download_done_rounded : Icons.archive_rounded;
               final Color color = isProductActive ? Colors.green.shade700 : Colors.red.shade700;
               final String statusText = isProductActive ? 'ACTIVO' : 'ARCHIVADO';
 
-              // Format dates
               final format = DateFormat('dd/MM/yy, HH:mm');
               final String fechaIngresoStr = format.format(entry.fechaIngreso.toDate());
               final String fechaSalidaStr = entry.fechaSalida != null 
@@ -60,12 +58,14 @@ class HistoryScreen extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: color.withOpacity(0.5), width: 1),
+                  // FIX: Replaced deprecated withOpacity with withAlpha
+                  side: BorderSide(color: color.withAlpha(128), width: 1),
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   leading: CircleAvatar(
-                    backgroundColor: color.withOpacity(0.15),
+                    // FIX: Replaced deprecated withOpacity with withAlpha
+                    backgroundColor: color.withAlpha(38),
                     child: Icon(icon, color: color, size: 28),
                   ),
                   title: Text(

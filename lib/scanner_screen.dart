@@ -319,7 +319,8 @@ class _ProductFormState extends State<ProductForm> {
                           builder: (context, snapshot) {
                             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                             return DropdownButtonFormField<DocumentReference>(
-                              value: _categoryRef,
+                              // FIX: Replaced deprecated `value` with `initialValue`
+                              initialValue: _categoryRef, 
                               decoration: const InputDecoration(labelText: 'Categoría'),
                               items: snapshot.data!.map((doc) => DropdownMenuItem(value: doc.reference, child: Text((doc.data() as Map)['nombrecategoria']))).toList(),
                               onChanged: (v) => setState(() => _categoryRef = v),
