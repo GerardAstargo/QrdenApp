@@ -20,6 +20,11 @@ Construida con Flutter y Firebase, Qrden ofrece una experiencia de usuario fluid
   - **Modificar:** Escanea el QR de un producto existente para editar su información.
   - **Eliminar:** Escanea el QR de un producto para confirmar su eliminación del inventario.
   - **Visualización:** Una lista principal muestra en tiempo real todos los productos del inventario, con su nombre, categoría y stock.
+  - **Búsqueda de Productos:**
+    - Una barra de búsqueda integrada en la pantalla principal permite a los usuarios filtrar la lista de productos por nombre en tiempo real.
+    - La búsqueda es accesible a través de un icono en el `AppBar` y no distingue entre mayúsculas y minúsculas para una mayor comodidad.
+    - Se muestra un mensaje claro cuando la búsqueda no arroja resultados.
+
 
 - **Escáner y Generador de QR:**
   - **Escáner Inteligente:** Utiliza la cámara del dispositivo (`mobile_scanner`) para detectar códigos QR. El modo de escaneo (Añadir, Modificar, Eliminar) se selecciona a través de un menú FAB expandible.

@@ -22,8 +22,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
-  String _welcomeMessage = 'Bienvenido';
+  final TextEditingController _searchController = TextEditingController();
+  
   late AnimationController _fabAnimationController;
+  
+  String _welcomeMessage = 'Bienvenido';
+  String _searchQuery = '';
+  List<Product> _allProducts = [];
+  List<Product> _filteredProducts = [];
+  bool _isSearching = false;
   bool _isFabMenuOpen = false;
 
   @override
@@ -34,11 +41,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     _fabAnimationController.dispose();
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -54,6 +64,34 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+      _filterProducts();
+    });
+  }
+
+  void _filterProducts() {
+    final products = _allProducts;
+    if (_searchQuery.isEmpty) {
+      _filteredProducts = List.from(products);
+    } else {
+      _filteredProducts = products
+          .where((product) =>
+              product.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchController.clear();
+      }
+    });
+  }
+  
   void _toggleFabMenu() {
     setState(() {
       _isFabMenuOpen = !_isFabMenuOpen;
@@ -104,32 +142,53 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     return Scaffold(
       key: const Key('homeScreenScaffold'),
-      appBar: AppBar(
-        title: Text(_welcomeMessage, style: Theme.of(context).appBarTheme.titleTextStyle),
-        actions: [
-          IconButton(
-            icon: Icon(themeProvider.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-            tooltip: 'Cambiar Tema',
-            onPressed: () => themeProvider.toggleTheme(!themeProvider.isDarkMode),
-          ),
-          IconButton(
-            icon: const Icon(Icons.history_outlined),
-            tooltip: 'Historial',
-            onPressed: _navigateToHistory,
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: 'Perfil',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            ),
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(context, themeProvider),
       body: _buildProductList(),
       floatingActionButton: _buildExpandableFab(context),
     );
   }
+
+  AppBar _buildAppBar(BuildContext context, ThemeProvider themeProvider) {
+    return AppBar(
+      title: _isSearching
+          ? TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Buscar producto...',
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withAlpha(179)),
+              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 18),
+            )
+          : Text(_welcomeMessage, style: Theme.of(context).appBarTheme.titleTextStyle),
+      actions: [
+        IconButton(
+          icon: Icon(_isSearching ? Icons.close : Icons.search),
+          tooltip: 'Buscar',
+          onPressed: _toggleSearch,
+        ),
+        IconButton(
+          icon: Icon(themeProvider.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+          tooltip: 'Cambiar Tema',
+          onPressed: () => themeProvider.toggleTheme(!themeProvider.isDarkMode),
+        ),
+        IconButton(
+          icon: const Icon(Icons.history_outlined),
+          tooltip: 'Historial',
+          onPressed: _navigateToHistory,
+        ),
+        IconButton(
+          icon: const Icon(Icons.person_outline),
+          tooltip: 'Perfil',
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildProductList() {
     return StreamBuilder<List<Product>>(
@@ -163,13 +222,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           );
         }
 
-        final products = snapshot.data!;
+        _allProducts = snapshot.data!;
+        _filterProducts(); // Filter initially and on every rebuild from stream
+
+        if (_filteredProducts.isEmpty && _searchQuery.isNotEmpty) {
+           return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.search_off_rounded, size: 80, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'No se encontraron productos',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                 Text(
+                  'No hay productos que coincidan con "$_searchQuery".',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
         return AnimationLimiter(
           child: ListView.builder(
             padding: const EdgeInsets.all(12.0),
-            itemCount: products.length,
+            itemCount: _filteredProducts.length,
             itemBuilder: (context, index) {
-              final product = products[index];
+              final product = _filteredProducts[index];
               return AnimationConfiguration.staggeredList(
                 position: index,
                 duration: const Duration(milliseconds: 400),
