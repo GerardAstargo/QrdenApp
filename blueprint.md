@@ -44,7 +44,8 @@ Construida con Flutter y Firebase, Qrden ofrece una experiencia de usuario fluid
   - Funcionalidad para cerrar sesión de forma segura.
 
 - **Tema Dinámico y Moderno:**
-  - Soporte para **modos claro y oscuro**, con un interruptor para que el usuario elija su preferencia.
+  - **Inicio en Modo Claro por Defecto:** La aplicación se inicia siempre en modo claro para una experiencia de usuario consistente, independientemente de la configuración del sistema.
+  - **Soporte para Modo Oscuro:** El usuario puede cambiar al modo oscuro en cualquier momento a través de un interruptor en la interfaz.
   - Paleta de colores profesional y consistente basada en Material 3.
 
 ---
