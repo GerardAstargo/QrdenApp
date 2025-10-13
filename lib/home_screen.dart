@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
+import './qr_generator_screen.dart';
 import './profile_screen.dart';
 import './firestore_service.dart';
 import './product_model.dart';
+import './scanner_screen.dart';
 import './product_detail_screen.dart';
 import './category_display_widget.dart';
 import './history_screen.dart';
@@ -16,14 +18,26 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
   String _welcomeMessage = 'Bienvenido';
+  late AnimationController _fabAnimationController;
+  bool _isFabMenuOpen = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fabAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _fabAnimationController.dispose();
+    super.dispose();
   }
 
   void _loadUserData() {
@@ -36,6 +50,44 @@ class _HomeScreenState extends State<HomeScreen> {
             : 'Bienvenido';
       });
     }
+  }
+
+  void _toggleFabMenu() {
+    setState(() {
+      _isFabMenuOpen = !_isFabMenuOpen;
+      if (_isFabMenuOpen) {
+        _fabAnimationController.forward();
+      } else {
+        _fabAnimationController.reverse();
+      }
+    });
+  }
+
+  void _navigateAndScan(ScanMode mode) async {
+    if (_isFabMenuOpen) {
+      _toggleFabMenu();
+    }
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (context) => ScannerScreen(scanMode: mode)),
+    );
+
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _navigateToQrGenerator() {
+    if (_isFabMenuOpen) {
+      _toggleFabMenu();
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const QrGeneratorScreen()),
+    );
   }
 
   void _navigateToHistory() {
@@ -66,14 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: _buildProductList(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Restaurando menú completo...')),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _buildExpandableFab(context),
     );
   }
 
@@ -142,4 +187,92 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
+  Widget _buildExpandableFab(BuildContext context) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        // Semi-transparent overlay
+        if (_isFabMenuOpen)
+          GestureDetector(
+            onTap: _toggleFabMenu, // Close menu on overlay tap
+            child: Container(
+              color: Colors.black.withAlpha(128),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        ..._buildFabMenuItems(),
+        FloatingActionButton(
+          onPressed: _toggleFabMenu,
+          elevation: 4,
+          child: AnimatedIcon(
+            icon: AnimatedIcons.menu_close,
+            progress: _fabAnimationController,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildFabMenuItems() {
+    final actions = [
+      FabAction(
+          icon: Icons.add_to_photos_outlined,
+          label: 'Añadir',
+          onPressed: () => _navigateAndScan(ScanMode.add)),
+      FabAction(
+          icon: Icons.remove_from_queue_outlined,
+          label: 'Eliminar',
+          onPressed: () => _navigateAndScan(ScanMode.remove)),
+      FabAction(
+          icon: Icons.edit_note_outlined,
+          label: 'Modificar',
+          onPressed: () => _navigateAndScan(ScanMode.update)),
+      FabAction(
+          icon: Icons.qr_code_2_sharp,
+          label: 'Generar QR',
+          onPressed: _navigateToQrGenerator),
+    ];
+
+    return List.generate(actions.length, (index) {
+      return AnimatedBuilder(
+        animation: _fabAnimationController,
+        builder: (context, child) {
+          final bottom = 65.0 + (index * 60.0) * _fabAnimationController.value;
+          return Positioned(
+            right: 4.0,
+            bottom: bottom,
+            child: Opacity(
+              opacity: _fabAnimationController.value,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_isFabMenuOpen)
+                    Card(
+                        elevation: 2,
+                        child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(actions[index].label))),
+                  const SizedBox(width: 8),
+                  FloatingActionButton.small(
+                    heroTag: 'fab_action_$index',
+                    onPressed: actions[index].onPressed,
+                    child: Icon(actions[index].icon),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }).reversed.toList();
+  }
+}
+
+class FabAction {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  FabAction({required this.icon, required this.label, required this.onPressed});
 }
