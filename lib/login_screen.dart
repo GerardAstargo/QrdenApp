@@ -21,37 +21,49 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    // Check if the widget is still mounted before the async operation
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // 1. Sign in the user first.
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // 2. After successful sign-in, set the persistence.
+      // After successful sign-in, set the persistence.
+      // This needs to be done before the app navigates away.
       await FirebaseAuth.instance.setPersistence(
         _keepLoggedIn ? Persistence.LOCAL : Persistence.SESSION,
       );
 
       final user = userCredential.user;
+
+      // Check mounted again before another async operation if needed, though not strictly necessary here
+      if (!mounted) return;
+
       if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
         final displayName = _emailController.text.split('@').first;
         await user.updateDisplayName(displayName);
       }
+
     } on FirebaseAuthException {
-      setState(() {
-        _errorMessage = 'Correo o contraseña incorrectos.';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Correo o contraseña incorrectos.';
+        });
+      }
     } catch (e, s) {
       developer.log('Login failed with unexpected error', name: 'LoginScreen', error: e, stackTrace: s);
-      setState(() {
-        _errorMessage = 'Ocurrió un error inesperado.';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
