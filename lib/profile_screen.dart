@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:qrden/login_screen.dart';
 import 'package:qrden/services/firestore_service.dart';
 import 'package:qrden/models/empleado_model.dart';
 import 'dart:developer' as developer;
@@ -39,10 +40,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
-      // AuthWrapper will handle navigation
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
     } catch (e, s) {
       developer.log('Error signing out', name: 'ProfileScreen', error: e, stackTrace: s);
-      // Don't use BuildContext after an async gap
     }
   }
 
@@ -129,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         CircleAvatar(
           radius: 50,
-          backgroundColor: colorScheme.primary.withAlpha(25), // Replaced withOpacity
+          backgroundColor: colorScheme.primary.withAlpha(25),
           child: Icon(Icons.person, size: 60, color: colorScheme.primary),
         ),
         const SizedBox(height: 16),
