@@ -16,11 +16,11 @@ class FirestoreService {
   Future<String> _getEmployeeName(String email) async {
     try {
       final employeeQuery = await _db.collection(_employeesCollection).get();
-      final lowerCaseEmail = email.toLowerCase();
+      final cleanEmail = email.toLowerCase().trim(); // Clean input
 
       for (var doc in employeeQuery.docs) {
-        final docEmail = (doc.data()['email'] as String? ?? '').toLowerCase();
-        if (docEmail == lowerCaseEmail) {
+        final docEmail = (doc.data()['email'] as String? ?? '').toLowerCase().trim(); // Clean DB email
+        if (docEmail == cleanEmail) {
           return doc.data()['nombre'] ?? email;
         }
       }
@@ -34,19 +34,26 @@ class FirestoreService {
     return email;
   }
 
+  /// Fetches the full employee data based on their email, ignoring case and whitespace.
   Future<Empleado?> getEmployeeByEmail(String email) async {
     try {
       final querySnapshot = await _db.collection(_employeesCollection).get();
-      final lowerCaseEmail = email.toLowerCase();
+      final cleanEmail = email.toLowerCase().trim(); // Trim and lowercase the input email
+
+      developer.log('Attempting to find employee with clean email: "$cleanEmail"', name: 'FirestoreService');
 
       for (final doc in querySnapshot.docs) {
         final docData = doc.data();
-        final docEmail = (docData['email'] as String? ?? '').toLowerCase();
+        final docEmail = (docData['email'] as String? ?? '').toLowerCase().trim(); // Trim and lowercase the database email
 
-        if (docEmail == lowerCaseEmail) {
+        if (docEmail == cleanEmail) {
+          developer.log('SUCCESS: Match found for "$cleanEmail" in document ${doc.id}', name: 'FirestoreService');
           return Empleado.fromMap(docData, doc.id);
         }
       }
+
+      developer.log('FAILURE: No match found for "$cleanEmail" after checking all ${querySnapshot.docs.length} documents.', name: 'FirestoreService');
+
     } catch (e, s) {
       developer.log(
         'Error fetching employee by email: $email',
@@ -58,6 +65,7 @@ class FirestoreService {
     return null;
   }
 
+
   /// Diagnostic tool: Fetches a list of all emails from the 'empleados' collection.
   Future<List<String>> getAllEmployeeEmails() async {
     List<String> emails = [];
@@ -66,7 +74,7 @@ class FirestoreService {
       for (final doc in querySnapshot.docs) {
         final docData = doc.data();
         if (docData.containsKey('email') && docData['email'] != null) {
-          emails.add(docData['email'].toString());
+          emails.add('"${docData['email'].toString()}" (Length: ${docData['email'].toString().length})');
         }
       }
       developer.log(
