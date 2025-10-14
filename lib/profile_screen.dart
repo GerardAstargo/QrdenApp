@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'models/empleado_model.dart';
 import 'services/firestore_service.dart';
 import 'theme_provider.dart';
+import 'login_screen.dart'; // Import needed for the reverted code
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -37,9 +38,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // This is the original, buggy _signOut method, now restored.
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        // This line causes the navigation conflict (the bug).
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
     } catch (e, s) {
       developer.log('Error signing out', name: 'ProfileScreen', error: e, stackTrace: s);
     }
