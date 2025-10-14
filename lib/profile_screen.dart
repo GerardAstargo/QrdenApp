@@ -46,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], 
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Perfil de Empleado'),
       ),
@@ -76,17 +76,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           const CircleAvatar(
             radius: 45,
-            backgroundColor: Color(0xFFE8EAF6), 
+            backgroundColor: Color(0xFFE8EAF6),
             child: Icon(Icons.person, size: 50, color: Color(0xFF7986CB)),
           ),
           const SizedBox(height: 16),
           Text(
-            employee.nombre,
+            employee.nombreCompleto, // Use the new getter for the full name
             style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
-            employee.cargo, 
+            employee.cargo, // Display the cleaned cargo
             style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
@@ -136,7 +136,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (currentUser == null) {
       infoText = 'No hay ninguna sesión activa.';
     } else {
-      infoText = 'No se encontró un perfil de empleado para:\n${currentUser!.email}';
+      // Provide a more detailed message
+      infoText = 'No se encontró un perfil de empleado para el correo:\n${currentUser!.email}\n\nVerifica que el email de inicio de sesión coincida con el registrado en la base de datos.';
     }
 
     return Padding(
@@ -145,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.person_off_outlined, color: Colors.grey[400], size: 80),
+          Icon(Icons.person_search_sharp, color: Colors.grey[400], size: 80),
           const SizedBox(height: 20),
           Text(infoText, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
           const Spacer(),
@@ -162,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onPressed: _signOut,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.redAccent,
-        minimumSize: const Size(double.infinity, 50), 
+        minimumSize: const Size(double.infinity, 50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

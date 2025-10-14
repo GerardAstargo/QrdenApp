@@ -8,60 +8,56 @@ Esta es una aplicación móvil desarrollada en Flutter para la gestión de inven
 
 ### 1. **Estructura y Navegación (go_router)**
    - **Enrutamiento Declarativo:** Se utiliza `go_router` para una navegación robusta y basada en URLs.
-   - **Rutas Definidas:**
-     - `/`: `AuthWrapper` - Decide si mostrar el login o la home.
-     - `/login`: `LoginScreen` - Pantalla de inicio de sesión.
-     - `/home`: `HomeScreen` - Pantalla principal con la lista de productos.
-     - `/scanner`: `ScannerScreen` - Escáner de códigos QR.
-     - `/generator`: `QRGeneratorScreen` - Generador de QR para nuevos productos.
-     - `/product/:name`: `ProductDetailScreen` - Detalles de un producto específico.
-     - `/history`: `HistoryScreen` - Historial de entradas y salidas de productos.
-     - `/profile`: `ProfileScreen` - Pantalla de perfil del empleado.
-   - **Navegación con BottomNavigationBar:** Se ha implementado un `ScaffoldWithNavBar` que gestiona la navegación principal entre las pantallas Home, Scanner, Generator, History y Profile.
+   - **Rutas Definidas:** `/`, `/login`, `/home`, `/scanner`, `/generator`, `/product/:name`, `/history`, `/profile`.
+   - **Navegación con BottomNavigationBar:** Un `ScaffoldWithNavBar` gestiona la navegación principal entre las pantallas Home, Scanner, Generator, History y Profile.
 
 ### 2. **Autenticación (Firebase Auth)**
-   - **Inicio de Sesión:** Los usuarios (empleados) se autentican con su email y contraseña a través de Firebase Auth.
-   - **Gestión de Sesión:** Un `AuthWrapper` (`StreamBuilder` sobre `authStateChanges()`) gestiona el estado de la sesión y redirige automáticamente al usuario a la pantalla de login o a la home.
-   - **Cierre de Sesión:** Funcionalidad para cerrar la sesión del usuario de forma segura.
+   - **Inicio y Cierre de Sesión:** Autenticación con email/contraseña y gestión de sesión mediante un `AuthWrapper` que redirige automáticamente.
 
 ### 3. **Base de Datos (Firestore)**
-   - **Servicio Firestore (`firestore_service.dart`):** Una clase centraliza todas las interacciones con la base de datos Firestore, facilitando el mantenimiento.
-   - **Colecciones:**
-     - `empleados`: Almacena los datos de los empleados (nombre, email).
-     - `producto`: Inventario principal de productos.
-     - `categoria`: Lista de categorías de productos.
-     - `registro`: Historial de movimientos de inventario.
-   - **Modelos de Datos:** Se utilizan clases (`Empleado`, `Product`, `HistoryEntry`) para estructurar los datos obtenidos de Firestore, promoviendo la seguridad de tipos.
+   - **Servicio Firestore (`firestore_service.dart`):** Clase que centraliza todas las interacciones con la base de datos.
+   - **Colecciones:** `empleados`, `producto`, `categoria`, `registro`.
+   - **Modelos de Datos:**
+     - `Empleado`: Modela los datos del usuario. Incluye los campos `id`, `nombre`, `email`, `cargo`, `rut` y `telefono`.
+     - `Product`: Modela los productos del inventario.
+     - `HistoryEntry`: Modela las entradas del historial de movimientos.
 
 ### 4. **Diseño y Experiencia de Usuario (Material 3)**
    - **Tema Moderno:** La aplicación utiliza Material Design 3 (`useMaterial3: true`).
-   - **Tema Oscuro/Claro:** Implementado con un `ThemeProvider` (`ChangeNotifier`) y un interruptor en la pantalla de perfil, permitiendo al usuario elegir su preferencia.
-   - **Componentes Estilizados:** Uso de `Card`, `ElevatedButton`, `Icon`, etc., con una estética consistente.
-   - **Fuentes Personalizadas (`google_fonts`):** Se utiliza `google_fonts` para mejorar la tipografía y el atractivo visual de la aplicación.
-   - **Feedback al Usuario:** Uso de `CircularProgressIndicator` durante las cargas y mensajes claros en caso de errores.
+   - **Tema Oscuro/Claro:** Implementado con un `ThemeProvider` y un interruptor accesible desde la pantalla principal.
+   - **Fuentes Personalizadas (`google_fonts`):** Se utiliza `google_fonts` para mejorar la tipografía.
+   - **Feedback al Usuario:** Indicadores de carga y mensajes de error claros.
 
 ### 5. **Funcionalidades Clave por Pantalla**
    - **HomeScreen:** Muestra una lista en tiempo real de los productos del inventario.
+   - **ScannerScreen / QRGeneratorScreen:** Gestionan el escaneo y la creación de códigos QR.
+   - **HistoryScreen:** Muestra el historial de movimientos de inventario.
    - **ProfileScreen:**
-     - Muestra el nombre y el email del empleado que ha iniciado sesión, obtenidos de la colección `empleados` en Firestore.
-     - Permite al usuario activar o desactivar el modo oscuro.
-     - Contiene el botón para cerrar la sesión de forma segura y corregida.
+     - **Diseño Fiel a la Imagen:** La pantalla ha sido rediseñada para ser una réplica visual de la maqueta proporcionada por el usuario.
+     - **Información Detallada:** Muestra la información completa del empleado obtenida de Firestore, incluyendo:
+       - Nombre y Cargo.
+       - Una tarjeta de información con Email, RUT y Teléfono, cada uno con su icono correspondiente.
+     - **Cierre de Sesión:** Contiene un botón estilizado en la parte inferior para cerrar la sesión de forma segura.
 
 ## Plan de Implementación (Historial de Cambios Recientes)
 
-### Tarea Actual: Corrección del Bug de Navegación al Cerrar Sesión
+### Tarea Actual: Rediseño de la Pantalla de Perfil y Ampliación del Modelo de Datos
 
-1.  **Identificación del Problema:** Se detectó un conflicto de navegación. Al cerrar sesión, el código forzaba una redirección manual a `LoginScreen`, mientras que el `AuthWrapper` (el listener de autenticación) también intentaba hacer lo mismo, resultando en un error (`Looking up a deactivated widget's ancestor is unsafe`).
+1.  **Objetivo:** Replicar el diseño de la pantalla de perfil proporcionado en una imagen por el usuario, que incluía más campos de datos.
 
-2.  **Análisis y Depuración (Fallida):** Los intentos iniciales de corrección se vieron frustrados por suposiciones incorrectas sobre la estructura del código (nombres de archivo y clases erróneos como `qrden`, `DatabaseService`, `employee.dart`), lo que introdujo múltiples errores de compilación.
+2.  **Paso 1: Actualizar Modelo de Datos.**
+    - Se modificó `lib/models/empleado_model.dart`.
+    - Se añadieron a la clase `Empleado` los campos `cargo`, `rut` y `telefono` para que coincidiera con los datos requeridos por el nuevo diseño.
 
-3.  **Investigación y Solución:**
-    - Se inspeccionó la estructura real del proyecto listando los archivos en el directorio `lib`.
-    - Se identificaron los nombres correctos: `empleado_model.dart`, `firestore_service.dart` y la clase `FirestoreService`.
-    - Se identificó el método correcto `getEmployeeByEmail` en lugar del supuesto `getEmployee`.
+3.  **Paso 2: Rediseñar la Interfaz de Usuario (UI).**
+    - Se reescribió por completo el archivo `lib/profile_screen.dart`.
+    - Se implementó la estructura visual de la imagen, incluyendo:
+        - Encabezado con avatar circular, nombre y cargo.
+        - Tarjeta de información detallada con iconos para Email, RUT y Teléfono.
+        - Botón de cierre de sesión rojo en la parte inferior de la pantalla.
 
-4.  **Implementación de la Solución Definitiva:**
-    - Se modificó la función `_signOut` en `lib/profile_screen.dart` para que **únicamente** llame a `FirebaseAuth.instance.signOut()`.
-    - Se eliminó por completo la lógica de navegación manual (`Navigator.of(context).pushAndRemoveUntil(...)`) del método `_signOut`.
-    - La responsabilidad de la redirección recae ahora, de forma única y correcta, en el widget `AuthWrapper` que ya estaba implementado en `main.dart`, solucionando el conflicto y el bug.
-    - Se corrigieron todas las importaciones y llamadas a clases/métodos en `lib/profile_screen.dart` para usar los nombres correctos, restaurando la funcionalidad de mostrar los datos del perfil.
+4.  **Paso 3: Corrección de Errores y Refinamiento.**
+    - Se solucionó un error crítico en `lib/services/firestore_service.dart`, actualizando la llamada al constructor del modelo de `Empleado.fromFirestore` a `Empleado.fromMap` para reflejar la refactorización del modelo.
+    - Se eliminaron advertencias de variables no utilizadas para limpiar el código.
+
+5.  **Resultado:** La pantalla de perfil es ahora funcional y visualmente idéntica al diseño solicitado. El modelo de datos ha sido ampliado para soportar la nueva información, y el código ha sido validado con `flutter analyze` para garantizar que no hay errores.
