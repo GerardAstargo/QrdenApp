@@ -11,25 +11,22 @@ class FirestoreService {
   final String _categoriesCollection = 'categoria';
   final String _historyCollection = 'registro';
 
-  // When a product is added, create a history entry with an entry date.
   Future<void> addProduct(Product product) async {
     final productRef = _db.collection(_productsCollection).doc(product.id);
     await productRef.set(product.toFirestore());
 
     final historyRef = _db.collection(_historyCollection).doc(product.id);
     final historyData = product.toFirestore();
-    historyData['fecha_ingreso'] = product.fechaIngreso;
+    historyData['fecha_ingreso'] = product.fechaIngreso ?? FieldValue.serverTimestamp();
     historyData['fecha_salida'] = null;
 
     await historyRef.set(historyData);
   }
 
-  // When a product is deleted, update its history entry with an exit date.
   Future<void> deleteProduct(String id) async {
     await _db.collection(_productsCollection).doc(id).delete();
-
     final historyRef = _db.collection(_historyCollection).doc(id);
-    await historyRef.update({'fecha_salida': Timestamp.now()});
+    await historyRef.set({'fecha_salida': Timestamp.now()}, SetOptions(merge: true));
   }
 
   Stream<List<HistoryEntry>> getHistoryEntries() {
@@ -54,6 +51,32 @@ class FirestoreService {
     });
   }
 
+  Future<void> updateProduct(Product product) async {
+    final historyUpdateData = {
+      'nombreproducto': product.name,
+      'categoria': product.category,
+      'stock': product.quantity,
+      'precio': product.price,
+      'ingresadoPor': product.enteredBy,
+    };
+
+    final historyRef = _db.collection(_historyCollection).doc(product.id);
+    await historyRef.set(historyUpdateData, SetOptions(merge: true));
+
+    final productRef = _db.collection(_productsCollection).doc(product.id);
+    await productRef.update(product.toFirestore());
+  }
+
+  Future<void> updateStock(String id, int newQuantity) async {
+    final stockData = {'stock': newQuantity};
+    
+    final historyRef = _db.collection(_historyCollection).doc(id);
+    await historyRef.set(stockData, SetOptions(merge: true));
+
+    final productRef = _db.collection(_productsCollection).doc(id);
+    await productRef.update(stockData);
+  }
+  
   Stream<List<Product>> getProducts() {
     return _db.collection(_productsCollection).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -91,15 +114,5 @@ class FirestoreService {
       }
     }
     return null;
-  }
-
-  Future<void> updateProduct(Product product) async {
-    await _db.collection(_historyCollection).doc(product.id).update(product.toFirestore());
-    await _db.collection(_productsCollection).doc(product.id).update(product.toFirestore());
-  }
-
-  Future<void> updateStock(String id, int newQuantity) {
-    _db.collection(_historyCollection).doc(id).update({'stock': newQuantity});
-    return _db.collection(_productsCollection).doc(id).update({'stock': newQuantity});
   }
 }

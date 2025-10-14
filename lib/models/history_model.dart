@@ -8,7 +8,7 @@ class HistoryEntry {
   final double price;
   final String addedBy;
   final Timestamp fechaIngreso;
-  final Timestamp? fechaSalida; // Nullable, as it might not be set
+  final Timestamp? fechaSalida;
 
   HistoryEntry({
     required this.id,
@@ -23,13 +23,23 @@ class HistoryEntry {
 
   factory HistoryEntry.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+    // Handle category, which could be a DocumentReference
+    String categoryIdStr = '';
+    if (data['categoria'] is DocumentReference) {
+      categoryIdStr = (data['categoria'] as DocumentReference).id;
+    } else if (data['categoria'] is String) {
+      categoryIdStr = data['categoria'];
+    }
+
     return HistoryEntry(
       id: doc.id,
-      name: data['nombre'] ?? '',
-      categoryId: data['categoria'] ?? '',
+      // Use the correct field names from what is stored in Firestore
+      name: data['nombreproducto'] ?? 'Sin Nombre',
+      categoryId: categoryIdStr,
       quantity: data['stock'] ?? 0,
       price: (data['precio'] ?? 0.0).toDouble(),
-      addedBy: data['ingresado_por'] ?? '',
+      addedBy: data['ingresadoPor'] ?? 'Desconocido',
       fechaIngreso: data['fecha_ingreso'] ?? Timestamp.now(),
       fechaSalida: data['fecha_salida'], // Can be null
     );
