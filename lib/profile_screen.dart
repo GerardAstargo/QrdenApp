@@ -159,13 +159,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Icon(icon, color: Colors.deepPurple, size: 24),
         const SizedBox(width: 20),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
-            const SizedBox(height: 3),
-            Text(value, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
-          ],
+        Expanded( // This widget will prevent the overflow
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+              const SizedBox(height: 3),
+              Text(
+                value, 
+                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis, // Optional: adds '...' if text is still too long
+              ),
+            ],
+          ),
         ),
       ],
     );
