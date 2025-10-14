@@ -37,12 +37,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // This is the correct, bug-free _signOut method
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
-      // No navigation logic is needed here. 
-      // The AuthWrapper in main.dart handles redirecting to the LoginScreen.
     } catch (e, s) {
       developer.log('Error signing out', name: 'ProfileScreen', error: e, stackTrace: s);
     }
@@ -60,7 +57,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError || !snapshot.data.hasData || snapshot.data == null) {
+          // Corrected line: Check snapshot.hasData, not snapshot.data.hasData
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
