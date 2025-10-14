@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _keepLoggedIn = false;
 
   Future<void> _login() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -25,6 +26,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      await FirebaseAuth.instance.setPersistence(
+        _keepLoggedIn ? Persistence.LOCAL : Persistence.SESSION,
+      );
+
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -116,16 +121,32 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: true,
                           validator: (value) => (value?.isEmpty ?? true) ? 'Ingresa tu contraseña' : null,
                         ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: CheckboxListTile(
+                            title: const Text("Mantener sesión iniciada"),
+                            value: _keepLoggedIn,
+                            onChanged: (newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _keepLoggedIn = newValue;
+                                });
+                              }
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
                         if (_errorMessage != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 16.0),
+                            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
                             child: Text(
                               _errorMessage!,
                               style: TextStyle(color: colorScheme.error),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         _isLoading
                             ? const Center(child: CircularProgressIndicator())
                             : ElevatedButton(
