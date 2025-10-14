@@ -1,119 +1,67 @@
+# Blueprint de la Aplicación de Inventario con QR
 
-# Blueprint: Qrden - Gestión de Inventario con QR
+## Visión General
 
-## 1. Visión General del Proyecto
+Esta es una aplicación móvil desarrollada en Flutter para la gestión de inventario. Permite a los empleados autenticados registrar, visualizar y gestionar productos mediante el escaneo de códigos QR. La aplicación se integra con Firebase para la autenticación de usuarios y el almacenamiento de datos en Firestore.
 
-**Qrden** es una aplicación móvil moderna, diseñada para una gestión de inventario eficiente e intuitiva. El núcleo de la aplicación es el uso de códigos QR para simplificar drásticamente el proceso de añadir, modificar, eliminar y consultar productos.
+## Características y Diseño Implementados
 
-Construida con Flutter y Firebase, Qrden ofrece una experiencia de usuario fluida, en tiempo real y multiplataforma (iOS y Android), con un diseño profesional y cuidado al detalle.
+### 1. **Estructura y Navegación (go_router)**
+   - **Enrutamiento Declarativo:** Se utiliza `go_router` para una navegación robusta y basada en URLs.
+   - **Rutas Definidas:**
+     - `/`: `AuthWrapper` - Decide si mostrar el login o la home.
+     - `/login`: `LoginScreen` - Pantalla de inicio de sesión.
+     - `/home`: `HomeScreen` - Pantalla principal con la lista de productos.
+     - `/scanner`: `ScannerScreen` - Escáner de códigos QR.
+     - `/generator`: `QRGeneratorScreen` - Generador de QR para nuevos productos.
+     - `/product/:name`: `ProductDetailScreen` - Detalles de un producto específico.
+     - `/history`: `HistoryScreen` - Historial de entradas y salidas de productos.
+     - `/profile`: `ProfileScreen` - Pantalla de perfil del empleado.
+   - **Navegación con BottomNavigationBar:** Se ha implementado un `ScaffoldWithNavBar` que gestiona la navegación principal entre las pantallas Home, Scanner, Generator, History y Profile.
 
----
+### 2. **Autenticación (Firebase Auth)**
+   - **Inicio de Sesión:** Los usuarios (empleados) se autentican con su email y contraseña a través de Firebase Auth.
+   - **Gestión de Sesión:** Un `AuthWrapper` (`StreamBuilder` sobre `authStateChanges()`) gestiona el estado de la sesión y redirige automáticamente al usuario a la pantalla de login o a la home.
+   - **Cierre de Sesión:** Funcionalidad para cerrar la sesión del usuario de forma segura.
 
-## 2. Características Principales
+### 3. **Base de Datos (Firestore)**
+   - **Servicio Firestore (`firestore_service.dart`):** Una clase centraliza todas las interacciones con la base de datos Firestore, facilitando el mantenimiento.
+   - **Colecciones:**
+     - `empleados`: Almacena los datos de los empleados (nombre, email).
+     - `producto`: Inventario principal de productos.
+     - `categoria`: Lista de categorías de productos.
+     - `registro`: Historial de movimientos de inventario.
+   - **Modelos de Datos:** Se utilizan clases (`Empleado`, `Product`, `HistoryEntry`) para estructurar los datos obtenidos de Firestore, promoviendo la seguridad de tipos.
 
-- **Autenticación Segura:**
-  - Inicio de sesión de usuarios a través de correo electrónico y contraseña, gestionado por **Firebase Authentication**.
-  - Persistencia de la sesión para una experiencia de usuario continua.
+### 4. **Diseño y Experiencia de Usuario (Material 3)**
+   - **Tema Moderno:** La aplicación utiliza Material Design 3 (`useMaterial3: true`).
+   - **Tema Oscuro/Claro:** Implementado con un `ThemeProvider` (`ChangeNotifier`) y un interruptor en la pantalla de perfil, permitiendo al usuario elegir su preferencia.
+   - **Componentes Estilizados:** Uso de `Card`, `ElevatedButton`, `Icon`, etc., con una estética consistente.
+   - **Fuentes Personalizadas (`google_fonts`):** Se utiliza `google_fonts` para mejorar la tipografía y el atractivo visual de la aplicación.
+   - **Feedback al Usuario:** Uso de `CircularProgressIndicator` durante las cargas y mensajes claros en caso de errores.
 
-- **Gestión Completa de Inventario:**
-  - **Añadir:** Escanea un código QR único para dar de alta un nuevo producto, rellenando sus detalles en un formulario modal.
-  - **Modificar:** Escanea el QR de un producto existente para editar su información.
-  - **Eliminar:** Escanea el QR de un producto para confirmar su eliminación del inventario.
-  - **Visualización:** Una lista principal muestra en tiempo real todos los productos del inventario, con su nombre, categoría y stock.
-  - **Búsqueda de Productos:**
-    - Una barra de búsqueda fija y estilizada está integrada directamente en el `AppBar` como elemento principal, ofreciendo acceso inmediato a la funcionalidad de búsqueda.
-    - Filtra la lista de productos por nombre en tiempo real a medida que el usuario escribe.
-    - La búsqueda no distingue entre mayúsculas y minúsculas para una mayor comodidad.
-    - Incluye un icono de búsqueda y un botón para limpiar el campo de texto fácilmente.
-    - Se muestra un mensaje claro cuando la búsqueda no arroja resultados.
+### 5. **Funcionalidades Clave por Pantalla**
+   - **HomeScreen:** Muestra una lista en tiempo real de los productos del inventario.
+   - **ProfileScreen:**
+     - Muestra el nombre y el email del empleado que ha iniciado sesión, obtenidos de la colección `empleados` en Firestore.
+     - Permite al usuario activar o desactivar el modo oscuro.
+     - Contiene el botón para cerrar la sesión de forma segura y corregida.
 
+## Plan de Implementación (Historial de Cambios Recientes)
 
-- **Escáner y Generador de QR:**
-  - **Escáner Inteligente:** Utiliza la cámara del dispositivo (`mobile_scanner`) para detectar códigos QR. El modo de escaneo (Añadir, Modificar, Eliminar) se selecciona a través de un menú FAB expandible.
-  - **Generador de QR:** Crea códigos QR únicos (`qr_flutter`) para identificar nuevos productos que aún no tienen uno.
+### Tarea Actual: Corrección del Bug de Navegación al Cerrar Sesión
 
-- **Historial de Actividad:**
-  - Pantalla que muestra un registro detallado de todos los movimientos del inventario (entradas, salidas, modificaciones).
-  - Cada entrada del historial muestra el estado del producto (Activo/Archivado), la fecha de ingreso y la fecha de salida.
-  - **Borrado de Historial:**
-    - Se ha añadido un botón en la pantalla de historial para permitir al usuario borrar todos los registros de una sola vez.
-    - Para evitar la pérdida accidental de datos, se muestra un diálogo de confirmación antes de proceder con la eliminación definitiva.
+1.  **Identificación del Problema:** Se detectó un conflicto de navegación. Al cerrar sesión, el código forzaba una redirección manual a `LoginScreen`, mientras que el `AuthWrapper` (el listener de autenticación) también intentaba hacer lo mismo, resultando en un error (`Looking up a deactivated widget's ancestor is unsafe`).
 
-- **Detalles del Producto:**
-  - Una vista dedicada muestra toda la información de un producto: nombre, categoría, stock, precio, fecha de ingreso, usuario que lo ingresó y número de estante.
+2.  **Análisis y Depuración (Fallida):** Los intentos iniciales de corrección se vieron frustrados por suposiciones incorrectas sobre la estructura del código (nombres de archivo y clases erróneos como `qrden`, `DatabaseService`, `employee.dart`), lo que introdujo múltiples errores de compilación.
 
-- **Perfil de Usuario:**
-  - Pantalla donde el usuario puede ver su nombre y correo electrónico.
-  - Funcionalidad para cerrar sesión de forma segura.
+3.  **Investigación y Solución:**
+    - Se inspeccionó la estructura real del proyecto listando los archivos en el directorio `lib`.
+    - Se identificaron los nombres correctos: `empleado_model.dart`, `firestore_service.dart` y la clase `FirestoreService`.
+    - Se identificó el método correcto `getEmployeeByEmail` en lugar del supuesto `getEmployee`.
 
-- **Tema Dinámico y Moderno:**
-  - **Inicio en Modo Claro por Defecto:** La aplicación se inicia siempre en modo claro para una experiencia de usuario consistente, independientemente de la configuración del sistema.
-  - **Soporte para Modo Oscuro:** El usuario puede cambiar al modo oscuro en cualquier momento a través de un interruptor en la interfaz.
-  - Paleta de colores profesional y consistente basada en Material 3.
-
----
-
-## 3. Arquitectura de la Aplicación
-
-Qrden sigue una arquitectura limpia y por capas para garantizar la separación de responsabilidades, la mantenibilidad y la escalabilidad.
-
-- **Gestión de Estado:**
-  - **`provider`:** Se utiliza para la gestión de estado a nivel de aplicación, principalmente para manejar el cambio de tema (claro/oscuro).
-  - **`StatefulWidget` y `AnimationController`:** Para gestionar el estado local y efímero dentro de los widgets, como las animaciones del FAB.
-
-- **Flujo de Datos y Servicios:**
-  - **Capa de Presentación (UI):** Compuesta por todos los widgets y pantallas. Es responsable de mostrar los datos y capturar la interacción del usuario.
-  - **Capa de Servicio (`firestore_service.dart`):** Actúa como un intermediario entre la UI y Firebase. Centraliza y abstrae toda la lógica de acceso a datos (lectura, escritura, actualización y eliminación en Firestore), ofreciendo una API limpia al resto de la aplicación.
-  - **Capa de Modelo de Datos (`product_model.dart`, `history_model.dart`):** Define la estructura de los objetos de datos con una lógica de serialización/deserialización robusta (`fromFirestore`, `toFirestore`) para garantizar la coherencia de los datos entre la app y la base de datos.
-  - **Logging:** Se utiliza `dart:developer` para un registro de errores estructurado y profesional, especialmente útil para depurar problemas en la capa de servicio.
-
-- **Navegación:**
-  - **`MaterialPageRoute`:** Para la navegación imperativa y estándar entre pantallas.
-  - **`AuthWrapper`:** Un widget inteligente que actúa como un guardián de rutas, decidiendo qué pantalla mostrar (Login o Home) basándose en el estado de autenticación del usuario en tiempo real.
-
----
-
-## 4. Diseño Visual y Tema (Theming)
-
-El diseño de Qrden se centra en la claridad, la modernidad y una experiencia de usuario agradable.
-
-- **Esquema de Color:**
-  - Basado en **Material 3 (`useMaterial3: true`)**.
-  - Utiliza `ColorScheme.fromSeed` con un color primario verde oscuro (`#2E7D32`) para generar paletas armoniosas y consistentes tanto para el modo claro como para el oscuro.
-  - Se favorece `withAlpha` para un control moderno y predecible de la transparencia.
-
-- **Tipografía:**
-  - La fuente **Inter**, obtenida a través de `google_fonts`, se utiliza en toda la aplicación para una legibilidad excelente y una estética moderna.
-  - La jerarquía de texto está bien definida en el `TextTheme` para títulos, subtítulos y cuerpo de texto.
-
-- **Estilo de Componentes:**
-  - Se definen temas específicos (`appBarTheme`, `elevatedButtonTheme`, `cardTheme`, etc.) para garantizar una apariencia visual unificada en todos los componentes de Material Design.
-  - Los `Card` tienen una elevación sutil y bordes redondeados.
-  - Los `InputDecoration` son limpios, con un fondo relleno y bordes redondeados.
-
-- **Animaciones:**
-  - Se utilizan `flutter_staggered_animations` para animar la aparición de las listas (FadeIn y Slide), haciendo la interfaz más dinámica.
-  - Se emplean `animations` para transiciones suaves entre pantallas (FadeThroughTransition).
-
----
-
-## 5. Dependencias Clave
-
-- **`firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`:** El stack de Firebase para backend, autenticación, base de datos NoSQL y almacenamiento de archivos.
-- **`provider`:** Para una gestión de estado simple y eficaz.
-- **`mobile_scanner`:** La librería principal para la funcionalidad de escaneo de códigos QR.
-- **`qr_flutter`:** Para la generación de imágenes de códigos QR dentro de la app.
-- **`google_fonts`:** Para cargar y utilizar fuentes personalizadas de manera sencilla.
-- **`intl`:** Para el formateo de fechas y números.
-- **`flutter_staggered_animations`, `animations`:** Para enriquecer la experiencia de usuario con animaciones elegantes.
-- **`cupertino_icons`:** Iconografía de estilo iOS.
-
----
-
-## 6. Control de Versiones
-
-- **Repositorio Git:** El código fuente del proyecto está gestionado y versionado con Git.
-- **Alojamiento Remoto:** El repositorio remoto está alojado en GitHub y es accesible en la siguiente URL:
-  - **[https://github.com/GerardAstargo/QrdenApp](https://github.com/GerardAstargo/QrdenApp)**
-- **Estado Actual:** El proyecto ha sido restaurado a la versión 5.4 y esta versión ha sido subida como la base del repositorio remoto.
-
+4.  **Implementación de la Solución Definitiva:**
+    - Se modificó la función `_signOut` en `lib/profile_screen.dart` para que **únicamente** llame a `FirebaseAuth.instance.signOut()`.
+    - Se eliminó por completo la lógica de navegación manual (`Navigator.of(context).pushAndRemoveUntil(...)`) del método `_signOut`.
+    - La responsabilidad de la redirección recae ahora, de forma única y correcta, en el widget `AuthWrapper` que ya estaba implementado en `main.dart`, solucionando el conflicto y el bug.
+    - Se corrigieron todas las importaciones y llamadas a clases/métodos en `lib/profile_screen.dart` para usar los nombres correctos, restaurando la funcionalidad de mostrar los datos del perfil.
