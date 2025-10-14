@@ -29,12 +29,12 @@ class Empleado {
 
     return Empleado(
       id: documentId,
-      nombre: data['nombre'] ?? '',
+      nombre: data['nombre'] ?? 'Nombre no encontrado',
       apellido: data['apellido'] ?? '', // Read the last name
-      email: data['email'] ?? '',
+      email: data['email'] ?? 'Email no encontrado',
       cargo: cargoData, // Use the cleaned cargo data
-      rut: data['rut'] ?? 'N/A',
-      telefono: data['telefono'] ?? 'N/A',
+      rut: data['rut'] ?? 'RUT no encontrado',
+      telefono: data['telefono'] ?? 'Teléfono no encontrado',
     );
   }
 

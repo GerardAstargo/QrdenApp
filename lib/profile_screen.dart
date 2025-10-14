@@ -1,6 +1,6 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer' as developer;
 
 import 'models/empleado_model.dart';
 import 'services/firestore_service.dart';
@@ -29,6 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _employeeFuture = _dbService.getEmployeeByEmail(currentUser!.email!);
       });
     } else {
+      // No user is logged in, set future to null
       setState(() {
         _employeeFuture = Future.value(null);
       });
@@ -38,6 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
+      // AuthWrapper will handle navigation
     } catch (e, s) {
       developer.log('Error signing out', name: 'ProfileScreen', error: e, stackTrace: s);
     }
@@ -45,10 +47,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: theme.colorScheme.surface, // Deprecation fix 1
       appBar: AppBar(
         title: const Text('Perfil de Empleado'),
+        elevation: 0,
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: FutureBuilder<Empleado?>(
         future: _employeeFuture,
@@ -56,11 +63,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasData && snapshot.data != null) {
-            final employee = snapshot.data!;
-            return _buildProfileView(context, employee);
+          if (snapshot.hasError) {
+            return _buildErrorView(context, 'Ocurrió un error al cargar el perfil.');
           }
-          return _buildInfoView(context, snapshot.error);
+          if (snapshot.hasData && snapshot.data != null) {
+            return _buildProfileView(context, snapshot.data!);
+          }
+          return _buildErrorView(context, 'No se encontró un perfil para \n${currentUser?.email ?? "el usuario actual"}.');
         },
       ),
     );
@@ -69,46 +78,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileView(BuildContext context, Empleado employee) {
     final theme = Theme.of(context);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.deepPurple, Colors.purpleAccent],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          const SizedBox(height: 30),
           const CircleAvatar(
-            radius: 45,
-            backgroundColor: Color(0xFFE8EAF6),
-            child: Icon(Icons.person, size: 50, color: Color(0xFF7986CB)),
+            radius: 50,
+            backgroundColor: Colors.white70,
+            child: Icon(Icons.person, size: 60, color: Colors.deepPurple),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
-            employee.nombreCompleto, // Use the new getter for the full name
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            employee.nombreCompleto,
+            style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
-            employee.cargo, // Display the cleaned cargo
-            style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+            employee.cargo,
+            style: theme.textTheme.titleMedium?.copyWith(color: Colors.white70),
           ),
-          const SizedBox(height: 24),
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  _buildInfoRow(context, Icons.email_outlined, 'Email', employee.email),
-                  const Divider(height: 24),
-                  _buildInfoRow(context, Icons.badge_outlined, 'RUT', employee.rut),
-                  const Divider(height: 24),
-                  _buildInfoRow(context, Icons.phone_outlined, 'Teléfono', employee.telefono),
-                ],
+          const SizedBox(height: 30),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface, // Deprecation fix 2
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildInfoCard(context, employee),
+                    const SizedBox(height: 40),
+                    _buildSignOutButton(context),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          _buildSignOutButton(context),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(BuildContext context, Empleado employee) {
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            _buildInfoRow(context, Icons.email_outlined, 'Email', employee.email),
+            const Divider(height: 30),
+            _buildInfoRow(context, Icons.badge_outlined, 'RUT', employee.rut),
+            const Divider(height: 30),
+            _buildInfoRow(context, Icons.phone_outlined, 'Teléfono', employee.telefono),
+          ],
+        ),
       ),
     );
   }
@@ -117,38 +158,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(icon, color: theme.primaryColor, size: 24),
-        const SizedBox(width: 16),
+        Icon(icon, color: Colors.deepPurple, size: 24),
+        const SizedBox(width: 20),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
-            const SizedBox(height: 2),
-            Text(value, style: theme.textTheme.bodyLarge),
+            const SizedBox(height: 3),
+            Text(value, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildInfoView(BuildContext context, Object? error) {
-    String infoText;
-    if (currentUser == null) {
-      infoText = 'No hay ninguna sesión activa.';
-    } else {
-      // Provide a more detailed message
-      infoText = 'No se encontró un perfil de empleado para el correo:\n${currentUser!.email}\n\nVerifica que el email de inicio de sesión coincida con el registrado en la base de datos.';
-    }
-
+  Widget _buildErrorView(BuildContext context, String message) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.person_search_sharp, color: Colors.grey[400], size: 80),
+          Icon(Icons.error_outline, color: Colors.red[400], size: 80),
           const SizedBox(height: 20),
-          Text(infoText, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+          Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
           const Spacer(),
           _buildSignOutButton(context),
         ],
@@ -159,12 +192,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSignOutButton(BuildContext context) {
     return ElevatedButton.icon(
       icon: const Icon(Icons.logout, color: Colors.white),
-      label: Text('Cerrar Sesión', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      label: Text('Cerrar Sesión', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       onPressed: _signOut,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.redAccent,
-        minimumSize: const Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        minimumSize: const Size(double.infinity, 55),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        elevation: 5,
+        shadowColor: Colors.red.withAlpha(102), // Deprecation fix 3
       ),
     );
   }

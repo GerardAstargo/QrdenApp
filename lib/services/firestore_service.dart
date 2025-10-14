@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
 import '../models/history_model.dart';
-import '../models/empleado_model.dart'; 
+import '../models/empleado_model.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
 
@@ -15,13 +15,14 @@ class FirestoreService {
 
   Future<String> _getEmployeeName(String email) async {
     try {
-      final employeeQuery = await _db
-          .collection(_employeesCollection)
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-      if (employeeQuery.docs.isNotEmpty) {
-        return employeeQuery.docs.first.get('nombre') ?? email;
+      final employeeQuery = await _db.collection(_employeesCollection).get();
+      final lowerCaseEmail = email.toLowerCase();
+
+      for (var doc in employeeQuery.docs) {
+        final docEmail = (doc.data()['email'] as String? ?? '').toLowerCase();
+        if (docEmail == lowerCaseEmail) {
+          return doc.data()['nombre'] ?? email;
+        }
       }
     } catch (e) {
       developer.log(
@@ -30,21 +31,25 @@ class FirestoreService {
         error: e,
       );
     }
-    return email; 
+    return email;
   }
 
+  /// Fetches the full employee data based on their email, ignoring case.
   Future<Empleado?> getEmployeeByEmail(String email) async {
     try {
-      final querySnapshot = await _db
-          .collection(_employeesCollection)
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
+      // Fetch all documents from the employees collection
+      final querySnapshot = await _db.collection(_employeesCollection).get();
+      final lowerCaseEmail = email.toLowerCase();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        final doc = querySnapshot.docs.first;
-        // Corrected line: Use fromMap instead of fromFirestore
-        return Empleado.fromMap(doc.data(), doc.id);
+      // Iterate through the documents to find a case-insensitive email match
+      for (final doc in querySnapshot.docs) {
+        final docData = doc.data();
+        final docEmail = (docData['email'] as String? ?? '').toLowerCase();
+
+        if (docEmail == lowerCaseEmail) {
+          // Match found, return the Empleado object
+          return Empleado.fromMap(docData, doc.id);
+        }
       }
     } catch (e, s) {
       developer.log(
@@ -54,6 +59,7 @@ class FirestoreService {
         stackTrace: s,
       );
     }
+    // No match found after checking all documents
     return null;
   }
 
@@ -119,14 +125,14 @@ class FirestoreService {
 
   Future<void> updateProduct(Product product) async {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
-    
+
     final productRef = _db.collection(_productsCollection).doc(product.name);
-    
+
     final productData = {
       ...product.toFirestore(),
       'ingresadoPor': enteredByName,
     };
-    
+
     await productRef.update(productData);
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);

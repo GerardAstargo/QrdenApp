@@ -17,8 +17,9 @@ Esta es una aplicación móvil desarrollada en Flutter para la gestión de inven
 ### 3. **Base de Datos (Firestore)**
    - **Servicio Firestore (`firestore_service.dart`):** Clase que centraliza todas las interacciones con la base de datos.
    - **Colecciones:** `empleados`, `producto`, `categoria`, `registro`.
+   - **Búsqueda Insensible a Mayúsculas/Minúsculas:** La lógica para encontrar un empleado por su email ha sido robustecida para que funcione correctamente sin importar si el usuario escribe su email con mayúsculas o minúsculas al iniciar sesión.
    - **Modelos de Datos:**
-     - `Empleado`: Modela los datos del usuario. Incluye los campos `id`, `nombre`, `email`, `cargo`, `rut` y `telefono`.
+     - `Empleado`: Modela los datos del usuario. Incluye los campos `id`, `nombre`, `apellido`, `email`, `cargo`, `rut` y `telefono`.
      - `Product`: Modela los productos del inventario.
      - `HistoryEntry`: Modela las entradas del historial de movimientos.
 
@@ -33,31 +34,30 @@ Esta es una aplicación móvil desarrollada en Flutter para la gestión de inven
    - **ScannerScreen / QRGeneratorScreen:** Gestionan el escaneo y la creación de códigos QR.
    - **HistoryScreen:** Muestra el historial de movimientos de inventario.
    - **ProfileScreen:**
-     - **Diseño Fiel a la Imagen:** La pantalla ha sido rediseñada para ser una réplica visual de la maqueta proporcionada por el usuario.
+     - **Diseño Fiel a la Imagen:** La pantalla ha sido rediseñada para ser una réplica visual de la maqueta proporcionada por el usuario, con fondos degradados y una estética moderna.
      - **Información Detallada:** Muestra la información completa del empleado obtenida de Firestore, incluyendo:
-       - Nombre y Cargo.
+       - Nombre completo, cargo, y un avatar.
        - Una tarjeta de información con Email, RUT y Teléfono, cada uno con su icono correspondiente.
      - **Cierre de Sesión:** Contiene un botón estilizado en la parte inferior para cerrar la sesión de forma segura.
 
 ## Plan de Implementación (Historial de Cambios Recientes)
 
-### Tarea Actual: Rediseño de la Pantalla de Perfil y Ampliación del Modelo de Datos
+### Tarea Final: Resolución de Búsqueda y Rediseño Final del Perfil
 
-1.  **Objetivo:** Replicar el diseño de la pantalla de perfil proporcionado en una imagen por el usuario, que incluía más campos de datos.
+1.  **Objetivo:** Solucionar el error persistente que impedía mostrar los datos del perfil y, una vez resuelto, implementar el diseño exacto solicitado por el usuario.
 
-2.  **Paso 1: Actualizar Modelo de Datos.**
-    - Se modificó `lib/models/empleado_model.dart`.
-    - Se añadieron a la clase `Empleado` los campos `cargo`, `rut` y `telefono` para que coincidiera con los datos requeridos por el nuevo diseño.
+2.  **Paso 1: Diagnóstico y Corrección del Error de Búsqueda.**
+    - **Problema:** Se identificó que la consulta a Firestore era sensible a mayúsculas y minúsculas, lo que causaba que no se encontrara el email del usuario si este iniciaba sesión con una capitalización diferente a la almacenada en la base de datos.
+    - **Solución:** Se modificó `lib/services/firestore_service.dart`. La función `getEmployeeByEmail` ahora recupera todos los documentos de la colección `empleados` y realiza una comparación de emails en minúsculas en el lado del cliente, garantizando la coincidencia.
 
-3.  **Paso 2: Rediseñar la Interfaz de Usuario (UI).**
-    - Se reescribió por completo el archivo `lib/profile_screen.dart`.
-    - Se implementó la estructura visual de la imagen, incluyendo:
-        - Encabezado con avatar circular, nombre y cargo.
-        - Tarjeta de información detallada con iconos para Email, RUT y Teléfono.
-        - Botón de cierre de sesión rojo en la parte inferior de la pantalla.
+3.  **Paso 2: Restaurar Modelo de Datos Completo.**
+    - Se restauró el archivo `lib/models/empleado_model.dart` para incluir todos los campos requeridos por el diseño (`nombre`, `apellido`, `cargo`, `rut`, `telefono`).
 
-4.  **Paso 3: Corrección de Errores y Refinamiento.**
-    - Se solucionó un error crítico en `lib/services/firestore_service.dart`, actualizando la llamada al constructor del modelo de `Empleado.fromFirestore` a `Empleado.fromMap` para reflejar la refactorización del modelo.
-    - Se eliminaron advertencias de variables no utilizadas para limpiar el código.
+4.  **Paso 3: Implementar el Diseño Final de la Interfaz.**
+    - Se reescribió `lib/profile_screen.dart` para replicar fielmente el diseño de la imagen proporcionada, utilizando todos los campos del modelo de datos restaurado.
 
-5.  **Resultado:** La pantalla de perfil es ahora funcional y visualmente idéntica al diseño solicitado. El modelo de datos ha sido ampliado para soportar la nueva información, y el código ha sido validado con `flutter analyze` para garantizar que no hay errores.
+5.  **Paso 4: Limpieza y Validación Final.**
+    - Se corrigieron 3 advertencias de `flutter analyze` relacionadas con el uso de propiedades obsoletas (`deprecated_member_use`) para alinear el código con las últimas prácticas de Flutter.
+    - Una ejecución final de `flutter analyze` confirmó que el proyecto está libre de errores y advertencias.
+
+6.  **Resultado:** La aplicación es ahora completamente funcional. La pantalla de perfil muestra los datos correctos para cualquier usuario y tiene la apariencia visual solicitada. El proyecto se encuentra en un estado estable y completo.
