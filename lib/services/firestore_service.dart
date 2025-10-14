@@ -34,20 +34,16 @@ class FirestoreService {
     return email;
   }
 
-  /// Fetches the full employee data based on their email, ignoring case.
   Future<Empleado?> getEmployeeByEmail(String email) async {
     try {
-      // Fetch all documents from the employees collection
       final querySnapshot = await _db.collection(_employeesCollection).get();
       final lowerCaseEmail = email.toLowerCase();
 
-      // Iterate through the documents to find a case-insensitive email match
       for (final doc in querySnapshot.docs) {
         final docData = doc.data();
         final docEmail = (docData['email'] as String? ?? '').toLowerCase();
 
         if (docEmail == lowerCaseEmail) {
-          // Match found, return the Empleado object
           return Empleado.fromMap(docData, doc.id);
         }
       }
@@ -59,9 +55,36 @@ class FirestoreService {
         stackTrace: s,
       );
     }
-    // No match found after checking all documents
     return null;
   }
+
+  /// Diagnostic tool: Fetches a list of all emails from the 'empleados' collection.
+  Future<List<String>> getAllEmployeeEmails() async {
+    List<String> emails = [];
+    try {
+      final querySnapshot = await _db.collection(_employeesCollection).get();
+      for (final doc in querySnapshot.docs) {
+        final docData = doc.data();
+        if (docData.containsKey('email') && docData['email'] != null) {
+          emails.add(docData['email'].toString());
+        }
+      }
+      developer.log(
+        'Found ${emails.length} emails in the database.',
+        name: 'FirestoreService.getAllEmployeeEmails',
+      );
+    } catch (e, s) {
+      developer.log(
+        'Error fetching all employee emails for diagnostics.',
+        name: 'FirestoreService.getAllEmployeeEmails',
+        error: e,
+        stackTrace: s,
+      );
+      return ['Error al leer la base de datos: $e'];
+    }
+    return emails;
+  }
+
 
   Future<void> addProduct(Product product) async {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
