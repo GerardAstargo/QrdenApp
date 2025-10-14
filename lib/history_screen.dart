@@ -1,44 +1,53 @@
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../models/history_model.dart';
 import '../services/firestore_service.dart';
 
-
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
-  Future<void> _clearHistory(BuildContext context) async {
-    final firestoreService = FirestoreService();
-    
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+
+  Future<void> _clearHistory() async {
     final bool confirm = await showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Eliminación'),
           content: const Text('¿Estás seguro de que deseas borrar todo el historial? Esta acción no se puede deshacer.'),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancelar'),
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
             ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Borrar'),
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
             ),
           ],
         );
       },
     ) ?? false;
 
+    if (!mounted) return; // Check if the widget is still in the tree
+
     if (confirm) {
       try {
-        await firestoreService.clearHistory();
+        await _firestoreService.clearHistory();
+        if (!mounted) return; // Re-check after the async operation
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Historial borrado con éxito.')),
         );
       } catch (e) {
+        if (!mounted) return; // And also in the catch block
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al borrar el historial: $e')),
         );
@@ -48,7 +57,6 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firestoreService = FirestoreService();
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -59,12 +67,12 @@ class HistoryScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.delete_sweep_outlined),
             tooltip: 'Borrar Historial',
-            onPressed: () => _clearHistory(context),
+            onPressed: _clearHistory,
           ),
         ],
       ),
       body: StreamBuilder<List<HistoryEntry>>(
-        stream: firestoreService.getHistoryEntries(),
+        stream: _firestoreService.getHistoryEntries(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

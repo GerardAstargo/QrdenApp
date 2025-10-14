@@ -1,6 +1,10 @@
+
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class QrGeneratorScreen extends StatefulWidget {
   const QrGeneratorScreen({super.key});
@@ -13,11 +17,61 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
   String? _qrData;
 
   void _generateQrCode() {
-    final random = '1234567890';
-    final randomNumber = List.generate(12, (index) => random[DateTime.now().microsecond % random.length]).join();
+    final random = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final randomNumber = List.generate(12, (index) => random[DateTime.now().microsecondsSinceEpoch % random.length]).join();
     setState(() {
       _qrData = randomNumber;
     });
+  }
+
+  Future<void> _shareQrCode() async {
+    if (_qrData == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Primero genera un código QR para poder compartirlo.')),
+      );
+      return;
+    }
+
+    try {
+      final theme = Theme.of(context);
+      final painter = QrPainter(
+        data: _qrData!,
+        version: QrVersions.auto,
+        gapless: false,
+        dataModuleStyle: QrDataModuleStyle(
+          color: theme.colorScheme.onSurface,
+          dataModuleShape: QrDataModuleShape.square,
+        ),
+        eyeStyle: QrEyeStyle(
+          color: theme.colorScheme.onSurface,
+          eyeShape: QrEyeShape.square,
+        ),
+      );
+
+      final picData = await painter.toImageData(250.0);
+      if (picData == null) {
+        throw Exception('No se pudo generar la imagen del QR.');
+      }
+      final buffer = picData.buffer.asUint8List();
+
+      final tempDir = await getTemporaryDirectory();
+      final file = await File('${tempDir.path}/qr_code.png').create();
+      await file.writeAsBytes(buffer);
+
+      final xFile = XFile(file.path);
+      // ignore: deprecated_member_use
+      await Share.shareXFiles(
+        [xFile],
+        text: 'Aquí está tu código QR para el menú. Por favor, imprímelo y colócalo en un lugar visible de tu establecimiento para que tus clientes puedan escanearlo.',
+        subject: 'Tu Código QR para Qrden',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al compartir el QR: $e')),
+      );
+    }
   }
 
   @override
@@ -27,7 +81,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generar Código QR'),
+        title: const Text('Mi Código QR'),
       ),
       body: SafeArea(
         child: Padding(
@@ -60,6 +114,15 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                     label: const Text('Generar Nuevo Código'),
                     onPressed: _generateQrCode,
                   ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.email_outlined),
+                    label: const Text('Enviar QR por Correo'),
+                    onPressed: _qrData == null ? null : _shareQrCode,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: theme.colorScheme.primary),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -76,6 +139,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
       child: Center(
         child: Text(
           'Presiona "Generar" para crear un QR',
+          textAlign: TextAlign.center,
           style: textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ),
@@ -84,12 +148,12 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
 
   Widget _buildQrDisplay(TextTheme textTheme, String data) {
     return Container(
-      key: ValueKey(data), // Use data as key to trigger animation
+      key: ValueKey(data),
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
           Text(
-            'Código Generado',
+            'Código de tu Negocio',
             style: textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
@@ -103,6 +167,15 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
             version: QrVersions.auto,
             size: 200.0,
             gapless: false,
+            backgroundColor: Colors.transparent,
+            dataModuleStyle: QrDataModuleStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              dataModuleShape: QrDataModuleShape.square,
+            ),
+            eyeStyle: QrEyeStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              eyeShape: QrEyeShape.square,
+            ),
           ),
         ],
       ),

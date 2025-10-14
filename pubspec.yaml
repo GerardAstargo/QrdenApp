@@ -22,6 +22,8 @@ dependencies:
   firebase_storage: ^13.0.2
   animations: ^2.0.11
   flutter_staggered_animations: ^1.1.1
+  path_provider: ^2.1.5
+  share_plus: ^12.0.0
 
 dev_dependencies:
   flutter_test:
