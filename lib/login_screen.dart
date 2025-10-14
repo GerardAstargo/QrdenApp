@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'dart:developer' as developer;
 
+import 'home_screen.dart'; // Import HomeScreen
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,10 +20,23 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
   bool _keepLoggedIn = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Check if a user is already logged in
+    if (FirebaseAuth.instance.currentUser != null) {
+      // If so, navigate to home screen immediately
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      });
+    }
+  }
+
   Future<void> _login() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    // Check if the widget is still mounted before the async operation
     if (!mounted) return;
 
     setState(() {
@@ -30,25 +45,28 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      await FirebaseAuth.instance.setPersistence(
+        _keepLoggedIn ? Persistence.LOCAL : Persistence.SESSION,
+      );
+
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // After successful sign-in, set the persistence.
-      // This needs to be done before the app navigates away.
-      await FirebaseAuth.instance.setPersistence(
-        _keepLoggedIn ? Persistence.LOCAL : Persistence.SESSION,
-      );
-
-      final user = userCredential.user;
-
-      // Check mounted again before another async operation if needed, though not strictly necessary here
       if (!mounted) return;
 
+      final user = userCredential.user;
       if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
         final displayName = _emailController.text.split('@').first;
         await user.updateDisplayName(displayName);
+      }
+      
+      // After login, navigate to home screen
+      if(mounted){
+         Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
       }
 
     } on FirebaseAuthException {

@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
-import 'services/auth_service.dart';
+import 'login_screen.dart'; // Import LoginScreen
 import 'theme_provider.dart';
 
 void main() async {
@@ -133,7 +133,7 @@ class MyApp extends StatelessWidget {
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: themeProvider.themeMode,
-          home: const AuthWrapper(),
+          home: const LoginScreen(), // Set LoginScreen as the home
         );
       },
     );
