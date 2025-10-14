@@ -32,9 +32,12 @@ Construida con Flutter y Firebase, Qrden ofrece una experiencia de usuario fluid
   - **Escáner Inteligente:** Utiliza la cámara del dispositivo (`mobile_scanner`) para detectar códigos QR. El modo de escaneo (Añadir, Modificar, Eliminar) se selecciona a través de un menú FAB expandible.
   - **Generador de QR:** Crea códigos QR únicos (`qr_flutter`) para identificar nuevos productos que aún no tienen uno.
 
-- **Historial de Actividad (En Desarrollo):**
-  - Se ha añadido un botón de "Historial" en la barra de navegación superior.
-  - Se han creado los archivos base (`history_screen.dart`, `history_model.dart`) para la futura implementación de esta pantalla.
+- **Historial de Actividad:**
+  - Pantalla que muestra un registro detallado de todos los movimientos del inventario (entradas, salidas, modificaciones).
+  - Cada entrada del historial muestra el estado del producto (Activo/Archivado), la fecha de ingreso y la fecha de salida.
+  - **Borrado de Historial:**
+    - Se ha añadido un botón en la pantalla de historial para permitir al usuario borrar todos los registros de una sola vez.
+    - Para evitar la pérdida accidental de datos, se muestra un diálogo de confirmación antes de proceder con la eliminación definitiva.
 
 - **Detalles del Producto:**
   - Una vista dedicada muestra toda la información de un producto: nombre, categoría, stock, precio, fecha de ingreso, usuario que lo ingresó y número de estante.

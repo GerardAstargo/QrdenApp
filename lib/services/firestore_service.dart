@@ -29,6 +29,19 @@ class FirestoreService {
     await historyRef.set({'fecha_salida': Timestamp.now()}, SetOptions(merge: true));
   }
 
+  // Method to clear the entire history collection
+  Future<void> clearHistory() async {
+    final historyCollection = _db.collection(_historyCollection);
+    final snapshot = await historyCollection.get();
+
+    // Use a batch to delete all documents efficiently
+    final batch = _db.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   Stream<List<HistoryEntry>> getHistoryEntries() {
     return _db
         .collection(_historyCollection)

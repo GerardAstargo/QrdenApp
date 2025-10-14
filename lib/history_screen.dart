@@ -8,6 +8,44 @@ import '../services/firestore_service.dart';
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
+  Future<void> _clearHistory(BuildContext context) async {
+    final firestoreService = FirestoreService();
+    
+    final bool confirm = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar Eliminación'),
+          content: const Text('¿Estás seguro de que deseas borrar todo el historial? Esta acción no se puede deshacer.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Borrar'),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+
+    if (confirm) {
+      try {
+        await firestoreService.clearHistory();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Historial borrado con éxito.')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al borrar el historial: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final firestoreService = FirestoreService();
@@ -17,6 +55,13 @@ class HistoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Historial de Movimientos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_outlined),
+            tooltip: 'Borrar Historial',
+            onPressed: () => _clearHistory(context),
+          ),
+        ],
       ),
       body: StreamBuilder<List<HistoryEntry>>(
         stream: firestoreService.getHistoryEntries(),
