@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'dart:developer' as developer;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,13 +27,15 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.setPersistence(
-        _keepLoggedIn ? Persistence.LOCAL : Persistence.SESSION,
-      );
-
+      // 1. Sign in the user first.
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
+      );
+
+      // 2. After successful sign-in, set the persistence.
+      await FirebaseAuth.instance.setPersistence(
+        _keepLoggedIn ? Persistence.LOCAL : Persistence.SESSION,
       );
 
       final user = userCredential.user;
@@ -44,7 +47,8 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = 'Correo o contraseña incorrectos.';
       });
-    } catch (_) {
+    } catch (e, s) {
+      developer.log('Login failed with unexpected error', name: 'LoginScreen', error: e, stackTrace: s);
       setState(() {
         _errorMessage = 'Ocurrió un error inesperado.';
       });
