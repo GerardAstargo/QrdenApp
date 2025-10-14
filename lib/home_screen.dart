@@ -51,15 +51,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  void _loadUserData() {
+  Future<void> _loadUserData() async {
     final User? user = FirebaseAuth.instance.currentUser;
-    if (user != null && mounted) {
-      setState(() {
-        final displayName = user.displayName;
-        _welcomeMessage = (displayName != null && displayName.isNotEmpty)
-            ? 'Hola, $displayName'
-            : 'Bienvenido';
-      });
+    if (user != null && user.email != null && mounted) {
+      final employee = await _firestoreService.getEmployeeByEmail(user.email!);
+      if (mounted && employee != null) {
+        setState(() {
+          _welcomeMessage = 'BIENVENIDO, ${employee.nombre.toUpperCase()}';
+        });
+      } else if (mounted) {
+        setState(() {
+          _welcomeMessage = 'Bienvenido';
+        });
+      }
     }
   }
 

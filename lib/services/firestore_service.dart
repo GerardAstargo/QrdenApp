@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
 import '../models/history_model.dart';
+import '../models/empleado_model.dart'; // Import the new model
 import 'dart:async';
 import 'dart:developer' as developer;
 
@@ -12,8 +13,8 @@ class FirestoreService {
   final String _historyCollection = 'registro';
   final String _employeesCollection = 'empleados';
 
-  /// Fetches an employee's name from the 'empleados' collection using their email.
   Future<String> _getEmployeeName(String email) async {
+    // ... (existing code)
     try {
       final employeeQuery = await _db
           .collection(_employeesCollection)
@@ -33,10 +34,31 @@ class FirestoreService {
     return email; // Return email as a fallback
   }
 
-  /// Adds a new product to Firestore.
-  /// The document ID will be the product's name.
-  /// It also creates a corresponding entry in the history collection.
+  /// Fetches the full employee data based on their email.
+  Future<Empleado?> getEmployeeByEmail(String email) async {
+    try {
+      final querySnapshot = await _db
+          .collection(_employeesCollection)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return Empleado.fromFirestore(querySnapshot.docs.first);
+      }
+    } catch (e, s) {
+      developer.log(
+        'Error fetching employee by email: $email',
+        name: 'FirestoreService.getEmployeeByEmail',
+        error: e,
+        stackTrace: s,
+      );
+    }
+    return null;
+  }
+
   Future<void> addProduct(Product product) async {
+    // ... (existing code)
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
 
     final productRef = _db.collection(_productsCollection).doc(product.name);
@@ -58,15 +80,15 @@ class FirestoreService {
     await historyRef.set(historyData);
   }
 
-  /// Deletes a product from Firestore using its name (which is the document ID).
-  /// It also updates the history entry to mark the product as removed.
   Future<void> deleteProduct(String productName) async {
+    // ... (existing code)
     await _db.collection(_productsCollection).doc(productName).delete();
     final historyRef = _db.collection(_historyCollection).doc(productName);
     await historyRef.set({'fecha_salida': Timestamp.now()}, SetOptions(merge: true));
   }
-  
+
   Future<void> clearHistory() async {
+    // ... (existing code)
     final historyCollection = _db.collection(_historyCollection);
     final snapshot = await historyCollection.get();
     final batch = _db.batch();
@@ -77,6 +99,7 @@ class FirestoreService {
   }
 
   Stream<List<HistoryEntry>> getHistoryEntries() {
+    // ... (existing code)
     return _db
         .collection(_historyCollection)
         .orderBy('fecha_ingreso', descending: true)
@@ -98,9 +121,8 @@ class FirestoreService {
     });
   }
 
-  /// Updates an existing product.
-  /// Assumes the product name (ID) has not changed.
   Future<void> updateProduct(Product product) async {
+    // ... (existing code)
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
     
     final productRef = _db.collection(_productsCollection).doc(product.name);
@@ -123,12 +145,14 @@ class FirestoreService {
   }
 
   Future<void> updateStock(String productName, int newQuantity) async {
+    // ... (existing code)
     final stockData = {'stock': newQuantity};
     await _db.collection(_productsCollection).doc(productName).update(stockData);
     await _db.collection(_historyCollection).doc(productName).set(stockData, SetOptions(merge: true));
   }
-  
+
   Stream<List<Product>> getProducts() {
+    // ... (existing code)
     return _db.collection(_productsCollection).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         try {
@@ -147,11 +171,12 @@ class FirestoreService {
   }
 
   Stream<List<DocumentSnapshot>> getCategories() {
+    // ... (existing code)
     return _db.collection(_categoriesCollection).snapshots().map((snapshot) => snapshot.docs);
   }
 
-  /// Finds a product by its barcode ('codigo' field).
   Future<Product?> getProductByCode(String code) async {
+    // ... (existing code)
     final querySnapshot = await _db
         .collection(_productsCollection)
         .where('codigo', isEqualTo: code)
@@ -173,9 +198,9 @@ class FirestoreService {
     }
     return null;
   }
-  
-  /// Finds a product by its name (document ID).
+
   Future<Product?> getProductByName(String name) async {
+    // ... (existing code)
     final snapshot = await _db.collection(_productsCollection).doc(name).get();
     if (snapshot.exists) {
       try {

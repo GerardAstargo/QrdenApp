@@ -101,7 +101,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
 
     if (confirmed == true) {
-      await _firestoreService.deleteProduct(product.name); // Use product name as ID
+      await _firestoreService.deleteProduct(product.name);
       if (mounted) {
         Navigator.pop(context, 'Producto eliminado con éxito');
       }
@@ -269,7 +269,7 @@ class _ProductFormState extends State<ProductForm> {
 
     final user = FirebaseAuth.instance.currentUser;
     final productData = Product(
-      id: _isUpdating ? widget.product!.id : _name.text, // Use existing ID on update, new name on add
+      id: _isUpdating ? widget.product!.id : _name.text,
       name: _name.text,
       code: widget.qrCode,
       category: _categoryRef!,
@@ -277,7 +277,7 @@ class _ProductFormState extends State<ProductForm> {
       price: double.parse(_price.text),
       numeroEstante: _shelfNumber.text,
       fechaIngreso: widget.product?.fechaIngreso ?? Timestamp.now(),
-      enteredBy: user?.email, // Email is used to fetch the name in FirestoreService
+      enteredBy: user?.email,
     );
 
     try {
@@ -339,7 +339,7 @@ class _ProductFormState extends State<ProductForm> {
                           controller: _name,
                           decoration: const InputDecoration(labelText: 'Nombre'),
                           validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                          readOnly: _isUpdating, // Make name non-editable on update
+                          readOnly: _isUpdating,
                         ),
                         const SizedBox(height: 16),
                         StreamBuilder<List<DocumentSnapshot>>(
@@ -347,7 +347,7 @@ class _ProductFormState extends State<ProductForm> {
                           builder: (context, snapshot) {
                             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                             return DropdownButtonFormField<DocumentReference>(
-                              value: _categoryRef,
+                              initialValue: _categoryRef,
                               decoration: const InputDecoration(labelText: 'Categoría'),
                               items: snapshot.data!.map((doc) => DropdownMenuItem(value: doc.reference, child: Text((doc.data() as Map)['nombrecategoria']))).toList(),
                               onChanged: (v) => setState(() => _categoryRef = v),
