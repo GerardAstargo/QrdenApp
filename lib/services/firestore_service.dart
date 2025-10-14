@@ -10,31 +10,65 @@ class FirestoreService {
   final String _productsCollection = 'producto';
   final String _categoriesCollection = 'categoria';
   final String _historyCollection = 'registro';
+  final String _employeesCollection = 'empleados';
 
+  /// Fetches an employee's name from the 'empleados' collection using their email.
+  Future<String> _getEmployeeName(String email) async {
+    try {
+      final employeeQuery = await _db
+          .collection(_employeesCollection)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      if (employeeQuery.docs.isNotEmpty) {
+        return employeeQuery.docs.first.get('nombre') ?? email;
+      }
+    } catch (e) {
+      developer.log(
+        'Error fetching employee name for email: $email',
+        name: 'FirestoreService._getEmployeeName',
+        error: e,
+      );
+    }
+    return email; // Return email as a fallback
+  }
+
+  /// Adds a new product to Firestore.
+  /// The document ID will be the product's name.
+  /// It also creates a corresponding entry in the history collection.
   Future<void> addProduct(Product product) async {
-    final productRef = _db.collection(_productsCollection).doc(product.id);
-    await productRef.set(product.toFirestore());
+    final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
 
-    final historyRef = _db.collection(_historyCollection).doc(product.id);
-    final historyData = product.toFirestore();
-    historyData['fecha_ingreso'] = product.fechaIngreso ?? FieldValue.serverTimestamp();
-    historyData['fecha_salida'] = null;
+    final productRef = _db.collection(_productsCollection).doc(product.name);
+
+    final productData = {
+      ...product.toFirestore(),
+      'ingresadoPor': enteredByName,
+    };
+
+    await productRef.set(productData);
+
+    final historyRef = _db.collection(_historyCollection).doc(product.name);
+    final historyData = {
+      ...productData,
+      'fecha_ingreso': product.fechaIngreso ?? FieldValue.serverTimestamp(),
+      'fecha_salida': null,
+    };
 
     await historyRef.set(historyData);
   }
 
-  Future<void> deleteProduct(String id) async {
-    await _db.collection(_productsCollection).doc(id).delete();
-    final historyRef = _db.collection(_historyCollection).doc(id);
+  /// Deletes a product from Firestore using its name (which is the document ID).
+  /// It also updates the history entry to mark the product as removed.
+  Future<void> deleteProduct(String productName) async {
+    await _db.collection(_productsCollection).doc(productName).delete();
+    final historyRef = _db.collection(_historyCollection).doc(productName);
     await historyRef.set({'fecha_salida': Timestamp.now()}, SetOptions(merge: true));
   }
-
-  // Method to clear the entire history collection
+  
   Future<void> clearHistory() async {
     final historyCollection = _db.collection(_historyCollection);
     final snapshot = await historyCollection.get();
-
-    // Use a batch to delete all documents efficiently
     final batch = _db.batch();
     for (final doc in snapshot.docs) {
       batch.delete(doc.reference);
@@ -53,7 +87,7 @@ class FirestoreService {
           return HistoryEntry.fromFirestore(doc);
         } catch (e, s) {
           developer.log(
-            'Failed to parse history entry with ID: ${doc.id}',
+            'Failed to parse history entry: ${doc.id}',
             name: 'FirestoreService.getHistoryEntries',
             error: e,
             stackTrace: s,
@@ -64,30 +98,34 @@ class FirestoreService {
     });
   }
 
+  /// Updates an existing product.
+  /// Assumes the product name (ID) has not changed.
   Future<void> updateProduct(Product product) async {
-    final historyUpdateData = {
+    final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
+    
+    final productRef = _db.collection(_productsCollection).doc(product.name);
+    
+    final productData = {
+      ...product.toFirestore(),
+      'ingresadoPor': enteredByName,
+    };
+    
+    await productRef.update(productData);
+
+    final historyRef = _db.collection(_historyCollection).doc(product.name);
+    await historyRef.set({
       'nombreproducto': product.name,
       'categoria': product.category,
       'stock': product.quantity,
       'precio': product.price,
-      'ingresadoPor': product.enteredBy,
-    };
-
-    final historyRef = _db.collection(_historyCollection).doc(product.id);
-    await historyRef.set(historyUpdateData, SetOptions(merge: true));
-
-    final productRef = _db.collection(_productsCollection).doc(product.id);
-    await productRef.update(product.toFirestore());
+      'ingresadoPor': enteredByName,
+    }, SetOptions(merge: true));
   }
 
-  Future<void> updateStock(String id, int newQuantity) async {
+  Future<void> updateStock(String productName, int newQuantity) async {
     final stockData = {'stock': newQuantity};
-    
-    final historyRef = _db.collection(_historyCollection).doc(id);
-    await historyRef.set(stockData, SetOptions(merge: true));
-
-    final productRef = _db.collection(_productsCollection).doc(id);
-    await productRef.update(stockData);
+    await _db.collection(_productsCollection).doc(productName).update(stockData);
+    await _db.collection(_historyCollection).doc(productName).set(stockData, SetOptions(merge: true));
   }
   
   Stream<List<Product>> getProducts() {
@@ -97,7 +135,7 @@ class FirestoreService {
           return Product.fromFirestore(doc);
         } catch (e, s) {
           developer.log(
-            'Failed to parse product with ID: ${doc.id}',
+            'Failed to parse product: ${doc.id}',
             name: 'FirestoreService.getProducts',
             error: e,
             stackTrace: s,
@@ -112,15 +150,40 @@ class FirestoreService {
     return _db.collection(_categoriesCollection).snapshots().map((snapshot) => snapshot.docs);
   }
 
-  Future<Product?> getProductById(String id) async {
-    final snapshot = await _db.collection(_productsCollection).doc(id).get();
+  /// Finds a product by its barcode ('codigo' field).
+  Future<Product?> getProductByCode(String code) async {
+    final querySnapshot = await _db
+        .collection(_productsCollection)
+        .where('codigo', isEqualTo: code)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      final doc = querySnapshot.docs.first;
+      try {
+        return Product.fromFirestore(doc);
+      } catch (e, s) {
+        developer.log(
+          'Failed to parse product from getProductByCode: ${doc.id}',
+          name: 'FirestoreService.getProductByCode',
+          error: e,
+          stackTrace: s,
+        );
+      }
+    }
+    return null;
+  }
+  
+  /// Finds a product by its name (document ID).
+  Future<Product?> getProductByName(String name) async {
+    final snapshot = await _db.collection(_productsCollection).doc(name).get();
     if (snapshot.exists) {
       try {
         return Product.fromFirestore(snapshot);
       } catch (e, s) {
         developer.log(
-          'Failed to parse product from getProductById: ${snapshot.id}',
-          name: 'FirestoreService.getProductById',
+          'Failed to parse product from getProductByName: ${snapshot.id}',
+          name: 'FirestoreService.getProductByName',
           error: e,
           stackTrace: s,
         );

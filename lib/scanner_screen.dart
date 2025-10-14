@@ -30,11 +30,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  Future<void> _handleQrCode(String qrCode) async {
+  Future<void> _handleBarcode(String barcode) async {
     if (!mounted || _isProcessing) return;
     setState(() => _isProcessing = true);
 
-    final product = await _firestoreService.getProductById(qrCode);
+    final product = await _firestoreService.getProductByCode(barcode);
 
     if (!mounted) {
       setState(() => _isProcessing = false);
@@ -44,21 +44,21 @@ class _ScannerScreenState extends State<ScannerScreen> {
     switch (widget.scanMode) {
       case ScanMode.add:
         if (product != null) {
-          _showErrorDialog('Este producto ya existe.');
+          _showErrorDialog('Un producto con este código de barras ya existe.');
         } else {
-          await _showProductForm(qrCode: qrCode);
+          await _showProductForm(qrCode: barcode);
         }
         break;
       case ScanMode.update:
         if (product == null) {
-          _showErrorDialog('Este producto no existe.');
+          _showErrorDialog('No se encontró ningún producto con este código.');
         } else {
-          await _showProductForm(product: product);
+          await _showProductForm(product: product, qrCode: barcode);
         }
         break;
       case ScanMode.remove:
         if (product == null) {
-          _showErrorDialog('Este producto no existe.');
+          _showErrorDialog('No se encontró ningún producto con este código.');
         } else {
           await _showDeleteConfirmation(product);
         }
@@ -81,7 +81,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     if (result == true && mounted) {
       final message = product == null ? 'Producto añadido con éxito' : 'Producto actualizado con éxito';
-      Navigator.pop(context, message); // Return success message
+      Navigator.pop(context, message);
     } else {
       setState(() => _isProcessing = false);
     }
@@ -101,9 +101,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
 
     if (confirmed == true) {
-      await _firestoreService.deleteProduct(product.id);
+      await _firestoreService.deleteProduct(product.name); // Use product name as ID
       if (mounted) {
-        Navigator.pop(context, 'Producto eliminado con éxito'); // Return success message
+        Navigator.pop(context, 'Producto eliminado con éxito');
       }
     } else {
       setState(() => _isProcessing = false);
@@ -127,7 +127,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     super.dispose();
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_title)),
@@ -136,11 +136,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
           MobileScanner(
             controller: _scannerController,
             onDetect: (capture) {
-              final String? qrCode = capture.barcodes.first.rawValue;
-              if (qrCode != null) _handleQrCode(qrCode);
+              final String? barcode = capture.barcodes.first.rawValue;
+              if (barcode != null) _handleBarcode(barcode);
             },
           ),
-          // Scanner Overlay
           Container(
             decoration: ShapeDecoration(
               shape: QrScannerOverlayShape(
@@ -152,7 +151,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
               ),
             ),
           ),
-          // Controls
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -175,7 +173,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.cancel, color: Colors.white), 
+                    icon: const Icon(Icons.cancel, color: Colors.white),
                     iconSize: 32,
                   ),
                 ],
@@ -252,10 +250,12 @@ class _ProductFormState extends State<ProductForm> {
   late TextEditingController _name, _quantity, _price, _shelfNumber;
   DocumentReference? _categoryRef;
   bool _isLoading = false;
+  late bool _isUpdating;
 
   @override
   void initState() {
     super.initState();
+    _isUpdating = widget.product != null;
     _name = TextEditingController(text: widget.product?.name ?? '');
     _quantity = TextEditingController(text: widget.product?.quantity.toString() ?? '');
     _price = TextEditingController(text: widget.product?.price.toString() ?? '');
@@ -268,24 +268,47 @@ class _ProductFormState extends State<ProductForm> {
     setState(() => _isLoading = true);
 
     final user = FirebaseAuth.instance.currentUser;
-    final product = Product(
-      id: widget.product?.id ?? widget.qrCode!,
+    final productData = Product(
+      id: _isUpdating ? widget.product!.id : _name.text, // Use existing ID on update, new name on add
       name: _name.text,
+      code: widget.qrCode,
       category: _categoryRef!,
       quantity: int.parse(_quantity.text),
       price: double.parse(_price.text),
       numeroEstante: _shelfNumber.text,
       fechaIngreso: widget.product?.fechaIngreso ?? Timestamp.now(),
-      enteredBy: user?.displayName ?? user?.email,
+      enteredBy: user?.email, // Email is used to fetch the name in FirestoreService
     );
 
-    await (widget.product == null 
-        ? FirestoreService().addProduct(product) 
-        : FirestoreService().updateProduct(product));
-
-    if (mounted) {
-      Navigator.pop(context, true);
+    try {
+      if (_isUpdating) {
+        await FirestoreService().updateProduct(productData);
+      } else {
+        await FirestoreService().addProduct(productData);
+      }
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('Error al guardar: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+  
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+      ),
+    );
   }
 
   @override
@@ -298,7 +321,7 @@ class _ProductFormState extends State<ProductForm> {
       ),
       child: Column(
         children: [
-          Text(widget.product == null ? 'Añadir Producto' : 'Editar Producto', style: Theme.of(context).textTheme.headlineSmall),
+          Text(_isUpdating ? 'Editar Producto' : 'Añadir Producto', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 24),
           Expanded(
             child: SingleChildScrollView(
@@ -312,15 +335,19 @@ class _ProductFormState extends State<ProductForm> {
                       duration: const Duration(milliseconds: 375),
                       childAnimationBuilder: (w) => SlideAnimation(verticalOffset: 50, child: FadeInAnimation(child: w)),
                       children: [
-                        TextFormField(controller: _name, decoration: const InputDecoration(labelText: 'Nombre'), validator: (v) => v!.isEmpty ? 'Requerido' : null),
+                        TextFormField(
+                          controller: _name,
+                          decoration: const InputDecoration(labelText: 'Nombre'),
+                          validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                          readOnly: _isUpdating, // Make name non-editable on update
+                        ),
                         const SizedBox(height: 16),
                         StreamBuilder<List<DocumentSnapshot>>(
                           stream: FirestoreService().getCategories(),
                           builder: (context, snapshot) {
                             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                             return DropdownButtonFormField<DocumentReference>(
-                              // FIX: Replaced deprecated `value` with `initialValue`
-                              initialValue: _categoryRef, 
+                              value: _categoryRef,
                               decoration: const InputDecoration(labelText: 'Categoría'),
                               items: snapshot.data!.map((doc) => DropdownMenuItem(value: doc.reference, child: Text((doc.data() as Map)['nombrecategoria']))).toList(),
                               onChanged: (v) => setState(() => _categoryRef = v),
@@ -342,8 +369,8 @@ class _ProductFormState extends State<ProductForm> {
             ),
           ),
           const SizedBox(height: 16),
-          _isLoading 
-              ? const Center(child: CircularProgressIndicator()) 
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
               : Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
