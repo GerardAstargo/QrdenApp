@@ -29,7 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _employeeFuture = _dbService.getEmployeeByEmail(currentUser!.email!);
       });
     } else {
-      // If there's no user, set the future to null immediately.
       setState(() {
         _employeeFuture = Future.value(null);
       });
@@ -39,7 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
-      // AuthWrapper will handle navigation.
     } catch (e, s) {
       developer.log('Error signing out', name: 'ProfileScreen', error: e, stackTrace: s);
     }
@@ -48,108 +46,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50], 
       appBar: AppBar(
-        title: const Text('Mi Perfil'),
+        title: const Text('Perfil de Empleado'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FutureBuilder<Empleado?>(
-          future: _employeeFuture,
-          builder: (context, snapshot) {
-            // 1. Loading State
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            // 2. Data Loaded Successfully
-            if (snapshot.hasData && snapshot.data != null) {
-              final employee = snapshot.data!;
-              return _buildProfileView(context, employee);
-            }
-
-            // 3. Error or No Data Found State
-            return _buildInfoView(context, snapshot.error);
-          },
-        ),
+      body: FutureBuilder<Empleado?>(
+        future: _employeeFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasData && snapshot.data != null) {
+            final employee = snapshot.data!;
+            return _buildProfileView(context, employee);
+          }
+          return _buildInfoView(context, snapshot.error);
+        },
       ),
     );
   }
 
-  // Widget for displaying the employee's profile
   Widget _buildProfileView(BuildContext context, Empleado employee) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Card(
-          elevation: 5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-            child: Column(
-              children: [
-                Icon(Icons.account_circle, size: 90, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 16),
-                Text(
-                  employee.nombre,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  employee.email,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const CircleAvatar(
+            radius: 45,
+            backgroundColor: Color(0xFFE8EAF6), 
+            child: Icon(Icons.person, size: 50, color: Color(0xFF7986CB)),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            employee.nombre,
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            employee.cargo, 
+            style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _buildInfoRow(context, Icons.email_outlined, 'Email', employee.email),
+                  const Divider(height: 24),
+                  _buildInfoRow(context, Icons.badge_outlined, 'RUT', employee.rut),
+                  const Divider(height: 24),
+                  _buildInfoRow(context, Icons.phone_outlined, 'Teléfono', employee.telefono),
+                ],
+              ),
             ),
           ),
+          const SizedBox(height: 32),
+          _buildSignOutButton(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, color: theme.primaryColor, size: 24),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+            const SizedBox(height: 2),
+            Text(value, style: theme.textTheme.bodyLarge),
+          ],
         ),
-        const Spacer(),
-        _buildSignOutButton(),
       ],
     );
   }
 
-  // Widget for showing info (error, no data, or logged out)
   Widget _buildInfoView(BuildContext context, Object? error) {
     String infoText;
     if (currentUser == null) {
       infoText = 'No hay ninguna sesión activa.';
-    } else if (error != null) {
-      infoText = 'Ocurrió un error al cargar tu perfil.';
     } else {
-      infoText = 'No se encontró un perfil de empleado para el correo:\n${currentUser!.email}';
+      infoText = 'No se encontró un perfil de empleado para:\n${currentUser!.email}';
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.person_off_outlined, color: Colors.grey[400], size: 80),
-        const SizedBox(height: 20),
-        Text(
-          infoText,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 30),
-        _buildSignOutButton(),
-      ],
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Icon(Icons.person_off_outlined, color: Colors.grey[400], size: 80),
+          const SizedBox(height: 20),
+          Text(infoText, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+          const Spacer(),
+          _buildSignOutButton(context),
+        ],
+      ),
     );
   }
 
-  // Themed Sign-Out Button
-  Widget _buildSignOutButton() {
+  Widget _buildSignOutButton(BuildContext context) {
     return ElevatedButton.icon(
-      icon: const Icon(Icons.logout),
-      label: const Text('Cerrar Sesión'),
+      icon: const Icon(Icons.logout, color: Colors.white),
+      label: Text('Cerrar Sesión', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       onPressed: _signOut,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.error,
-        foregroundColor: Theme.of(context).colorScheme.onError,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        backgroundColor: Colors.redAccent,
+        minimumSize: const Size(double.infinity, 50), 
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
     );
   }

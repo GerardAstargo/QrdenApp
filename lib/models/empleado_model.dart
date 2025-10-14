@@ -1,37 +1,38 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Empleado {
   final String id;
   final String nombre;
-  final String apellido;
   final String email;
+  final String cargo;
   final String rut;
   final String telefono;
-  final DocumentReference? cargo; // Make cargo nullable
 
   Empleado({
     required this.id,
     required this.nombre,
-    required this.apellido,
     required this.email,
+    required this.cargo,
     required this.rut,
     required this.telefono,
-    this.cargo, // Make cargo optional in constructor
   });
 
-  factory Empleado.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+  factory Empleado.fromMap(Map<String, dynamic> data, String documentId) {
     return Empleado(
-      id: doc.id,
+      id: documentId,
       nombre: data['nombre'] ?? '',
-      apellido: data['apellido'] ?? '',
       email: data['email'] ?? '',
-      rut: data['rut'] ?? '',
-      telefono: data['telefono'] ?? '',
-      // Safely parse the cargo field
-      cargo: data.containsKey('cargo') && data['cargo'] is DocumentReference
-          ? data['cargo'] as DocumentReference
-          : null,
+      cargo: data['cargo'] ?? 'N/A',
+      rut: data['rut'] ?? 'N/A',
+      telefono: data['telefono'] ?? 'N/A',
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'nombre': nombre,
+      'email': email,
+      'cargo': cargo,
+      'rut': rut,
+      'telefono': telefono,
+    };
   }
 }
