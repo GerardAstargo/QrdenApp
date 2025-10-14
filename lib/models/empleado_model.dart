@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer' as developer;
+
 class Empleado {
   final String id;
   final String nombre;
@@ -17,24 +20,35 @@ class Empleado {
     required this.telefono,
   });
 
-  // Getter to combine first and last name
   String get nombreCompleto => '$nombre $apellido';
 
   factory Empleado.fromMap(Map<String, dynamic> data, String documentId) {
-    // Safely parse the 'cargo' field
-    String cargoData = data['cargo'] ?? 'N/A';
-    if (cargoData.contains('/')) {
-      cargoData = cargoData.split('/').last;
+    String parsedCargo = 'Cargo no especificado';
+    try {
+      dynamic cargoData = data['cargo'];
+      if (cargoData is DocumentReference) {
+        // It's a DocumentReference, get the last part of the path
+        parsedCargo = cargoData.path.split('/').last;
+      } else if (cargoData is String) {
+        // It's a String, handle both plain text and reference-like strings
+        if (cargoData.contains('/')) {
+          parsedCargo = cargoData.split('/').last;
+        } else {
+          parsedCargo = cargoData;
+        }
+      } 
+    } catch (e) {
+        developer.log('Could not parse cargo: $e', name: 'EmpleadoModel');
     }
 
     return Empleado(
       id: documentId,
       nombre: data['nombre'] ?? 'Nombre no encontrado',
-      apellido: data['apellido'] ?? '', // Read the last name
+      apellido: data['apellido'] ?? '',
       email: data['email'] ?? 'Email no encontrado',
-      cargo: cargoData, // Use the cleaned cargo data
+      cargo: parsedCargo, // Use the safely parsed cargo
       rut: data['rut'] ?? 'RUT no encontrado',
-      telefono: data['telefono'] ?? 'Teléfono no encontrado',
+      telefono: data['telefono']?.toString() ?? 'Teléfono no encontrado', // Safely convert telefono to String
     );
   }
 
@@ -43,7 +57,7 @@ class Empleado {
       'nombre': nombre,
       'apellido': apellido,
       'email': email,
-      'cargo': '/cargo/$cargo', // Save it back in the original format if needed
+      'cargo': cargo, 
       'rut': rut,
       'telefono': telefono,
     };

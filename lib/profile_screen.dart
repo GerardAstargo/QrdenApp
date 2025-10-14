@@ -43,47 +43,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Show diagnostic data in an alert
-  Future<void> _showDiagnostics() async {
-    final allEmails = await _dbService.getAllEmployeeEmails();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Diagnóstico de Datos'),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: <Widget>[
-              const Text(
-                'Este es un diálogo de depuración para comparar los datos de sesión con los de la base de datos.\n',
-                style: TextStyle(fontSize: 12),
-              ),
-              const Divider(),
-              const Text(
-                'Email con el que iniciaste sesión:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SelectableText(currentUser?.email ?? 'No hay usuario logueado'),
-              const SizedBox(height: 16),
-              const Text(
-                'Emails encontrados en la Base de Datos:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              for (final email in allEmails)
-                SelectableText('• $email'), // Added bullet point for clarity
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Cerrar'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
-
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -103,12 +62,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return _buildErrorView(context, 'Ocurrió un error al cargar el perfil.', showDiagnostics: true);
+            developer.log('Error in FutureBuilder', error: snapshot.error, stackTrace: snapshot.stackTrace);
+            return _buildErrorView(context, 'Ocurrió un error al cargar el perfil.');
           }
           if (snapshot.hasData && snapshot.data != null) {
             return _buildProfileView(context, snapshot.data!);
           }
-          return _buildErrorView(context, 'No se encontró un perfil para \n${currentUser?.email ?? "el usuario actual"}.', showDiagnostics: true);
+          return _buildErrorView(context, 'No se encontró un perfil para \n${currentUser?.email ?? "el usuario actual"}.');
         },
       ),
     );
@@ -211,8 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Updated error view to conditionally show the diagnostic button
-  Widget _buildErrorView(BuildContext context, String message, {bool showDiagnostics = false}) {
+  Widget _buildErrorView(BuildContext context, String message) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -223,25 +182,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 20),
           Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
           const Spacer(),
-          if (showDiagnostics)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.bug_report_outlined),
-                label: const Text('Diagnosticar Problema'),
-                onPressed: _showDiagnostics,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.blueGrey,
-                ),
-              ),
-            ),
           _buildSignOutButton(context),
         ],
       ),
     );
   }
-
 
   Widget _buildSignOutButton(BuildContext context) {
     return ElevatedButton.icon(
