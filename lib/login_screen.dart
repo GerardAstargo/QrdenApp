@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'dart:developer' as developer;
-
-import 'home_screen.dart'; // Import HomeScreen
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,26 +15,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
-  bool _keepLoggedIn = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Check if a user is already logged in
-    if (FirebaseAuth.instance.currentUser != null) {
-      // If so, navigate to home screen immediately
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      });
-    }
-  }
 
   Future<void> _login() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    if (!mounted) return;
 
     setState(() {
       _isLoading = true;
@@ -45,43 +25,24 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.setPersistence(
-        _keepLoggedIn ? Persistence.LOCAL : Persistence.SESSION,
-      );
-
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      if (!mounted) return;
 
       final user = userCredential.user;
       if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
         final displayName = _emailController.text.split('@').first;
         await user.updateDisplayName(displayName);
       }
-      
-      // After login, navigate to home screen
-      if(mounted){
-         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-
     } on FirebaseAuthException {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Correo o contraseña incorrectos.';
-        });
-      }
-    } catch (e, s) {
-      developer.log('Login failed with unexpected error', name: 'LoginScreen', error: e, stackTrace: s);
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
-        });
-      }
+      setState(() {
+        _errorMessage = 'Correo o contraseña incorrectos.';
+      });
+    } catch (_) {
+      setState(() {
+        _errorMessage = 'Ocurrió un error inesperado.';
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -155,32 +116,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: true,
                           validator: (value) => (value?.isEmpty ?? true) ? 'Ingresa tu contraseña' : null,
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: CheckboxListTile(
-                            title: const Text("Mantener sesión iniciada"),
-                            value: _keepLoggedIn,
-                            onChanged: (newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  _keepLoggedIn = newValue;
-                                });
-                              }
-                            },
-                            controlAffinity: ListTileControlAffinity.leading,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
                         if (_errorMessage != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                            padding: const EdgeInsets.only(top: 16.0),
                             child: Text(
                               _errorMessage!,
                               style: TextStyle(color: colorScheme.error),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
                         _isLoading
                             ? const Center(child: CircularProgressIndicator())
                             : ElevatedButton(
