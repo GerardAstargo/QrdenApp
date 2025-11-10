@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'models/empleado_model.dart';
 import 'home_screen.dart';
+import 'login_screen.dart'; 
 
 class PinScreen extends StatefulWidget {
   final Empleado employee;
@@ -24,19 +26,26 @@ class _PinScreenState extends State<PinScreen> {
 
     if (_formKey.currentState!.validate()) {
       if (_pinController.text == widget.employee.securityPin) {
-        // Navigate to home on success
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
           (Route<dynamic> route) => false,
         );
       } else {
-        // Show error on failure
         setState(() {
           _errorText = 'PIN incorrecto. Inténtalo de nuevo.';
         });
         _pinController.clear();
       }
     }
+  }
+
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (Route<dynamic> route) => false,
+    );
   }
 
   @override
@@ -52,7 +61,7 @@ class _PinScreenState extends State<PinScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
+                const Icon(
                   Icons.shield_moon_outlined,
                   size: 80,
                   color: Colors.deepPurple,
@@ -106,6 +115,11 @@ class _PinScreenState extends State<PinScreen> {
                     ),
                   ),
                   child: const Text('Verificar e Ingresar'),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: _logout,
+                  child: const Text('Cerrar Sesión'),
                 ),
               ],
             ),

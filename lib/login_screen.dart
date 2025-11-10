@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'dart:developer' as developer;
 
 import 'home_screen.dart';
 import 'pin_screen.dart';
@@ -39,7 +40,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         final employee = await _firestoreService.getEmployeeByEmail(user.email!);
 
-        if (!mounted) return; 
+        if (employee != null) {
+          developer.log(
+            'Empleado encontrado: ${employee.nombre}, hasPin: ${employee.hasPin}, PIN: "${employee.securityPin}"',
+            name: 'LoginScreenDebug',
+          );
+        } else {
+          developer.log(
+            'No se encontró ningún empleado para el correo: ${user.email!}',
+            name: 'LoginScreenDebug',
+          );
+        }
+
+        if (!mounted) return;
 
         if (employee != null) {
           if (employee.hasPin) {
@@ -61,9 +74,10 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = 'Correo o contraseña incorrectos.';
       });
-    } catch (e) {
+    } catch (e, s) {
+      developer.log('Error en el login: $e', stackTrace: s, name: 'LoginScreenDebug');
       setState(() {
-        _errorMessage = 'Ocurrió un error: ${e.toString()}';
+        _errorMessage = 'Ocurrió un error inesperado.';
       });
     } finally {
       if (mounted) {
