@@ -9,7 +9,7 @@ class Empleado {
   final String cargo;
   final String rut;
   final String telefono;
-  final String? securityPin; // Can be null
+  final String? securityPin;
 
   Empleado({
     required this.id,
@@ -19,12 +19,11 @@ class Empleado {
     required this.cargo,
     required this.rut,
     required this.telefono,
-    this.securityPin, // Add to constructor as optional
+    this.securityPin,
   });
 
   String get nombreCompleto => '$nombre $apellido';
 
-  // Helper to quickly check if a PIN exists
   bool get hasPin => securityPin != null && securityPin!.isNotEmpty;
 
   factory Empleado.fromMap(Map<String, dynamic> data, String documentId) {
@@ -39,9 +38,15 @@ class Empleado {
         } else {
           parsedCargo = cargoData;
         }
-      } 
+      }
     } catch (e) {
-        developer.log('Could not parse cargo: $e', name: 'EmpleadoModel');
+      developer.log('Could not parse cargo: $e', name: 'EmpleadoModel');
+    }
+
+    // Robust way to read the security pin, converting it to string if necessary
+    String? pin;
+    if (data.containsKey('securityPin') && data['securityPin'] != null) {
+      pin = data['securityPin'].toString();
     }
 
     return Empleado(
@@ -52,7 +57,7 @@ class Empleado {
       cargo: parsedCargo,
       rut: data['rut'] ?? 'RUT no encontrado',
       telefono: data['telefono']?.toString() ?? 'Teléfono no encontrado',
-      securityPin: data['securityPin'] as String?, // Read the security PIN
+      securityPin: pin,
     );
   }
 
@@ -61,7 +66,7 @@ class Empleado {
       'nombre': nombre,
       'apellido': apellido,
       'email': email,
-      'cargo': cargo, 
+      'cargo': cargo,
       'rut': rut,
       'telefono': telefono,
       if (securityPin != null) 'securityPin': securityPin,
