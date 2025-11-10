@@ -16,10 +16,10 @@ class FirestoreService {
   Future<String> _getEmployeeName(String email) async {
     try {
       final employeeQuery = await _db.collection(_employeesCollection).get();
-      final cleanEmail = email.toLowerCase().trim(); // Clean input
+      final cleanEmail = email.toLowerCase().trim();
 
       for (var doc in employeeQuery.docs) {
-        final docEmail = (doc.data()['email'] as String? ?? '').toLowerCase().trim(); // Clean DB email
+        final docEmail = (doc.data()['email'] as String? ?? '').toLowerCase().trim();
         if (docEmail == cleanEmail) {
           return doc.data()['nombre'] ?? email;
         }
@@ -37,13 +37,13 @@ class FirestoreService {
   Future<Empleado?> getEmployeeByEmail(String email) async {
     try {
       final querySnapshot = await _db.collection(_employeesCollection).get();
-      final cleanEmail = email.toLowerCase().trim(); // Trim and lowercase the input email
+      final cleanEmail = email.toLowerCase().trim();
 
       developer.log('Attempting to find employee with clean email: "$cleanEmail"', name: 'FirestoreService');
 
       for (final doc in querySnapshot.docs) {
         final docData = doc.data();
-        final docEmail = (docData['email'] as String? ?? '').toLowerCase().trim(); // Trim and lowercase the database email
+        final docEmail = (docData['email'] as String? ?? '').toLowerCase().trim();
 
         if (docEmail == cleanEmail) {
           developer.log('SUCCESS: Match found for "$cleanEmail" in document ${doc.id}', name: 'FirestoreService');
@@ -79,6 +79,24 @@ class FirestoreService {
       throw 'No se pudo actualizar el PIN. Inténtalo de nuevo.';
     }
   }
+
+  Future<void> deleteSecurityPin(String employeeId) async {
+    try {
+      final employeeRef = _db.collection(_employeesCollection).doc(employeeId);
+      // Usa FieldValue.delete() para eliminar el campo del documento.
+      await employeeRef.update({'securityPin': FieldValue.delete()});
+      developer.log('Successfully deleted PIN for employee $employeeId', name: 'FirestoreService');
+    } catch (e, s) {
+      developer.log(
+        'Error deleting security PIN for employee: $employeeId',
+        name: 'FirestoreService.deleteSecurityPin',
+        error: e,
+        stackTrace: s,
+      );
+      throw 'No se pudo eliminar el PIN. Inténtalo de nuevo.';
+    }
+  }
+
 
   Future<List<String>> getAllEmployeeEmails() async {
     List<String> emails = [];
@@ -120,7 +138,6 @@ class FirestoreService {
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);
 
-    // Corrected: productData already contains 'fecha_ingreso'. We only need to add 'fecha_salida'.
     final historyData = {
       ...productData,
       'fecha_salida': null,
