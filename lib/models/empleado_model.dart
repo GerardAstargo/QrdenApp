@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 class Empleado {
   final String id;
+  final String path; // Full path to the document in Firestore
   final String nombre;
   final String apellido;
   final String email;
@@ -13,6 +14,7 @@ class Empleado {
 
   Empleado({
     required this.id,
+    required this.path,
     required this.nombre,
     required this.apellido,
     required this.email,
@@ -26,7 +28,7 @@ class Empleado {
 
   bool get hasPin => securityPin != null && securityPin!.isNotEmpty;
 
-  factory Empleado.fromMap(Map<String, dynamic> data, String documentId) {
+  factory Empleado.fromMap(Map<String, dynamic> data, String documentId, String documentPath) {
     String parsedCargo = 'Cargo no especificado';
     try {
       dynamic cargoData = data['cargo'];
@@ -43,7 +45,6 @@ class Empleado {
       developer.log('Could not parse cargo: $e', name: 'EmpleadoModel');
     }
 
-    // Robust way to read the security pin, converting it to string if necessary
     String? pin;
     if (data.containsKey('securityPin') && data['securityPin'] != null) {
       pin = data['securityPin'].toString();
@@ -51,6 +52,7 @@ class Empleado {
 
     return Empleado(
       id: documentId,
+      path: documentPath, // Store the full path
       nombre: data['nombre'] ?? 'Nombre no encontrado',
       apellido: data['apellido'] ?? '',
       email: data['email'] ?? 'Email no encontrado',

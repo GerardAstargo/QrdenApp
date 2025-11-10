@@ -46,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, 
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(employee.hasPin ? 'Cambiar PIN de Seguridad' : 'Crear PIN de Seguridad'),
@@ -101,14 +101,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   try {
-                    await _dbService.updateSecurityPin(employee.id, pinController.text);
+                    // Correctly use the employee's full path to update the PIN
+                    await _dbService.updateSecurityPin(employee.path, pinController.text);
                     // ignore: use_build_context_synchronously
-                    Navigator.of(context).pop(); 
+                    Navigator.of(context).pop();
                     // ignore: use_build_context_synchronously
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('PIN actualizado con éxito'), backgroundColor: Colors.green),
                     );
-                    _loadEmployeeData();
+                    _loadEmployeeData(); // Refresh data on screen
                   } catch (e) {
                     // ignore: use_build_context_synchronously
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -200,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 20),
                     _buildInfoCard(context, employee),
                     const SizedBox(height: 20),
-                    _buildPinButton(context, employee), 
+                    _buildPinButton(context, employee),
                     const SizedBox(height: 20),
                     _buildSignOutButton(context),
                     const SizedBox(height: 20),
