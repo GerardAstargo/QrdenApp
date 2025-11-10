@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
+import 'home_screen.dart';
+import 'pin_screen.dart';
+import 'services/firestore_service.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -15,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  final FirestoreService _firestoreService = FirestoreService();
 
   Future<void> _login() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -31,17 +36,34 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final user = userCredential.user;
-      if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
-        final displayName = _emailController.text.split('@').first;
-        await user.updateDisplayName(displayName);
+      if (user != null) {
+        final employee = await _firestoreService.getEmployeeByEmail(user.email!);
+
+        if (!mounted) return; 
+
+        if (employee != null) {
+          if (employee.hasPin) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => PinScreen(employee: employee)),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          }
+        } else {
+           Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+        }
       }
     } on FirebaseAuthException {
       setState(() {
         _errorMessage = 'Correo o contraseña incorrectos.';
       });
-    } catch (_) {
+    } catch (e) {
       setState(() {
-        _errorMessage = 'Ocurrió un error inesperado.';
+        _errorMessage = 'Ocurrió un error: ${e.toString()}';
       });
     } finally {
       if (mounted) {
