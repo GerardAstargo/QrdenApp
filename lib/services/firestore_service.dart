@@ -34,7 +34,6 @@ class FirestoreService {
     return email;
   }
 
-  /// Fetches the full employee data based on their email, ignoring case and whitespace.
   Future<Empleado?> getEmployeeByEmail(String email) async {
     try {
       final querySnapshot = await _db.collection(_employeesCollection).get();
@@ -65,8 +64,22 @@ class FirestoreService {
     return null;
   }
 
+  Future<void> updateSecurityPin(String employeeId, String pin) async {
+    try {
+      final employeeRef = _db.collection(_employeesCollection).doc(employeeId);
+      await employeeRef.update({'securityPin': pin});
+      developer.log('Successfully updated PIN for employee $employeeId', name: 'FirestoreService');
+    } catch (e, s) {
+      developer.log(
+        'Error updating security PIN for employee: $employeeId',
+        name: 'FirestoreService.updateSecurityPin',
+        error: e,
+        stackTrace: s,
+      );
+      throw 'No se pudo actualizar el PIN. Inténtalo de nuevo.';
+    }
+  }
 
-  /// Diagnostic tool: Fetches a list of all emails from the 'empleados' collection.
   Future<List<String>> getAllEmployeeEmails() async {
     List<String> emails = [];
     try {
@@ -93,7 +106,6 @@ class FirestoreService {
     return emails;
   }
 
-
   Future<void> addProduct(Product product) async {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
 
@@ -107,9 +119,10 @@ class FirestoreService {
     await productRef.set(productData);
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);
+
+    // Corrected: productData already contains 'fecha_ingreso'. We only need to add 'fecha_salida'.
     final historyData = {
       ...productData,
-      'fecha_ingreso': product.fechaIngreso ?? FieldValue.serverTimestamp(),
       'fecha_salida': null,
     };
 
