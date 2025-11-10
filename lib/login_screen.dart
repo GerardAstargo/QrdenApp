@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'dart:developer' as developer;
 
-import 'home_screen.dart';
 import 'pin_screen.dart';
 import 'services/firestore_service.dart';
 import 'models/empleado_model.dart';
@@ -44,18 +43,20 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         if (employee != null) {
-          // Redirige SIEMPRE a la pantalla del PIN si se encuentra al empleado.
+          // Si se encuentra al empleado, SIEMPRE redirige a la pantalla del PIN.
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => PinScreen(employee: employee)),
           );
         } else {
-          // Si no hay perfil de empleado, va a la pantalla principal.
+          // Si NO se encuentra un perfil de empleado, cierra sesión y muestra un error.
+          await FirebaseAuth.instance.signOut();
+          setState(() {
+            _errorMessage = 'No se encontró un perfil de empleado para este correo. Contacte a un administrador.';
+            _isLoading = false;
+          });
           developer.log(
-            'No se encontró un perfil de empleado para ${user.email}, redirigiendo a HomeScreen.',
+            'Inicio de sesión fallido: No se encontró perfil de empleado para ${user.email}',
             name: 'LoginScreenLogic',
-          );
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         }
       }
@@ -69,8 +70,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _errorMessage = 'Ocurrió un error inesperado.';
       });
     } finally {
-      if (mounted) {
-        setState(() {
+      if (mounted && _errorMessage == null) {
+        // Solo detiene la carga si no se manejó un error que ya lo hace.
+      } else if (mounted && _errorMessage != null) {
+         setState(() {
           _isLoading = false;
         });
       }
@@ -105,10 +108,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.qr_code_scanner,
                           size: 60,
-                          color: colorScheme.primary,
+                          color: Colors.deepPurple,
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -146,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.only(top: 16.0),
                             child: Text(
                               _errorMessage!,
-                              style: TextStyle(color: colorScheme.error),
+                              style: TextStyle(color: colorScheme.error, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center,
                             ),
                           ),
