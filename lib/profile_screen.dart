@@ -29,6 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _employeeFuture = _dbService.getEmployeeByEmail(currentUser!.email!);
       });
     } else {
+      // If there is no user, set the future to null to handle it gracefully
       setState(() {
         _employeeFuture = Future.value(null);
       });
@@ -36,7 +37,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
-    await FirebaseAuth.instance.signOut();
+    try {
+      await FirebaseAuth.instance.signOut();
+      // After signing out, you might want to navigate to the login screen
+      // or update the UI accordingly. For now, we'll just log it.
+      developer.log('User signed out successfully', name: 'ProfileScreen');
+    } catch (e, s) {
+      developer.log('Error signing out', name: 'ProfileScreen', error: e, stackTrace: s);
+    }
   }
 
   Future<void> _showPinDialog(Empleado employee) async {
@@ -46,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: false, // User must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(employee.hasPin ? 'Cambiar PIN de Seguridad' : 'Crear PIN de Seguridad'),
@@ -101,17 +109,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   try {
-                    // Correctly use the employee's full path to update the PIN
-                    await _dbService.updateSecurityPin(employee.path, pinController.text);
-                    // ignore: use_build_context_synchronously
-                    Navigator.of(context).pop();
-                    // ignore: use_build_context_synchronously
+                    await _dbService.updateSecurityPin(employee.id, pinController.text);
+                    Navigator.of(context).pop(); // Close dialog on success
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('PIN actualizado con éxito'), backgroundColor: Colors.green),
                     );
-                    _loadEmployeeData(); // Refresh data on screen
+                    _loadEmployeeData(); // Refresh profile data
                   } catch (e) {
-                    // ignore: use_build_context_synchronously
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error al guardar el PIN: $e'), backgroundColor: Colors.red),
                     );
@@ -201,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 20),
                     _buildInfoCard(context, employee),
                     const SizedBox(height: 20),
-                    _buildPinButton(context, employee),
+                    _buildPinButton(context, employee), // PIN Button
                     const SizedBox(height: 20),
                     _buildSignOutButton(context),
                     const SizedBox(height: 20),

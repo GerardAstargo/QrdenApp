@@ -11,86 +11,121 @@ class FirestoreService {
   final String _productsCollection = 'producto';
   final String _categoriesCollection = 'categoria';
   final String _historyCollection = 'registro';
-  final String _employeesCollectionGroup = 'empleados';
+  final String _employeesCollection = 'empleados';
 
   Future<String> _getEmployeeName(String email) async {
-    if (email.isEmpty) return email;
     try {
-      final employee = await getEmployeeByEmail(email);
-      return employee?.nombre ?? email;
-    } catch (e, s) {
-      developer.log('Error in _getEmployeeName', name: 'FirestoreService', error: e, stackTrace: s);
-      return email;
+      final employeeQuery = await _db.collection(_employeesCollection).get();
+      final cleanEmail = email.toLowerCase().trim(); // Clean input
+
+      for (var doc in employeeQuery.docs) {
+        final docEmail = (doc.data()['email'] as String? ?? '').toLowerCase().trim(); // Clean DB email
+        if (docEmail == cleanEmail) {
+          return doc.data()['nombre'] ?? email;
+        }
+      }
+    } catch (e) {
+      developer.log(
+        'Error fetching employee name for email: $email',
+        name: 'FirestoreService._getEmployeeName',
+        error: e,
+      );
     }
+    return email;
   }
 
   Future<Empleado?> getEmployeeByEmail(String email) async {
     try {
-      final cleanEmail = email.toLowerCase().trim();
-      developer.log('Searching for employee with email: "$cleanEmail" using a collectionGroup query.', name: 'FirestoreService');
+      final querySnapshot = await _db.collection(_employeesCollection).get();
+      final cleanEmail = email.toLowerCase().trim(); // Trim and lowercase the input email
 
-      // This is the correct and most efficient query.
-      // It requires a manual index to be created in the Firebase Console.
-      final querySnapshot = await _db
-          .collectionGroup(_employeesCollectionGroup)
-          .where('email', isEqualTo: cleanEmail)
-          .limit(1)
-          .get();
+      developer.log('Attempting to find employee with clean email: "$cleanEmail"', name: 'FirestoreService');
 
-      if (querySnapshot.docs.isNotEmpty) {
-        final employeeDoc = querySnapshot.docs.first;
-        final docData = employeeDoc.data();
-        developer.log('SUCCESS: Match found for "$cleanEmail" at path ${employeeDoc.reference.path}', name: 'FirestoreService');
-        return Empleado.fromMap(docData, employeeDoc.id, employeeDoc.reference.path);
+      for (final doc in querySnapshot.docs) {
+        final docData = doc.data();
+        final docEmail = (docData['email'] as String? ?? '').toLowerCase().trim(); // Trim and lowercase the database email
+
+        if (docEmail == cleanEmail) {
+          developer.log('SUCCESS: Match found for "$cleanEmail" in document ${doc.id}', name: 'FirestoreService');
+          return Empleado.fromMap(docData, doc.id);
+        }
       }
 
-      developer.log('FAILURE: No match found for "$cleanEmail" in the collection group.', name: 'FirestoreService');
-      return null;
+      developer.log('FAILURE: No match found for "$cleanEmail" after checking all ${querySnapshot.docs.length} documents.', name: 'FirestoreService');
+
     } catch (e, s) {
       developer.log(
-        'Error fetching employee by email. This is EXPECTED if the index has not been created yet. Check the logs for a URL to create the index.',
+        'Error fetching employee by email: $email',
         name: 'FirestoreService.getEmployeeByEmail',
         error: e,
         stackTrace: s,
       );
-      // Re-throw the error so the UI can potentially handle it.
-      throw FirebaseException(
-        plugin: 'FirestoreService',
-        code: 'index-not-found',
-        message: 'The required index for querying employees is likely missing. Please check the debug console for a URL to create it.',
-      );
     }
+    return null;
   }
 
-  Future<void> updateSecurityPin(String employeePath, String pin) async {
-    if (employeePath.isEmpty) {
-      throw 'La ruta del empleado está vacía. No se puede actualizar el PIN.';
-    }
+  Future<void> updateSecurityPin(String employeeId, String pin) async {
     try {
-      final employeeRef = _db.doc(employeePath);
+      final employeeRef = _db.collection(_employeesCollection).doc(employeeId);
       await employeeRef.update({'securityPin': pin});
-      developer.log('Successfully updated PIN for employee at path $employeePath', name: 'FirestoreService');
+      developer.log('Successfully updated PIN for employee $employeeId', name: 'FirestoreService');
     } catch (e, s) {
-      developer.log('Error updating security PIN', name: 'FirestoreService.updateSecurityPin', error: e, stackTrace: s);
+      developer.log(
+        'Error updating security PIN for employee: $employeeId',
+        name: 'FirestoreService.updateSecurityPin',
+        error: e,
+        stackTrace: s,
+      );
       throw 'No se pudo actualizar el PIN. Inténtalo de nuevo.';
     }
   }
 
-  // --- Other functions below are mostly for other features and do not need changes ---
-  
   Future<List<String>> getAllEmployeeEmails() async {
-    // This diagnostic function is not critical for the main flow
-    return [];
+    List<String> emails = [];
+    try {
+      final querySnapshot = await _db.collection(_employeesCollection).get();
+      for (final doc in querySnapshot.docs) {
+        final docData = doc.data();
+        if (docData.containsKey('email') && docData['email'] != null) {
+          emails.add('"${docData['email'].toString()}" (Length: ${docData['email'].toString().length})');
+        }
+      }
+      developer.log(
+        'Found ${emails.length} emails in the database.',
+        name: 'FirestoreService.getAllEmployeeEmails',
+      );
+    } catch (e, s) {
+      developer.log(
+        'Error fetching all employee emails for diagnostics.',
+        name: 'FirestoreService.getAllEmployeeEmails',
+        error: e,
+        stackTrace: s,
+      );
+      return ['Error al leer la base de datos: $e'];
+    }
+    return emails;
   }
 
   Future<void> addProduct(Product product) async {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
+
     final productRef = _db.collection(_productsCollection).doc(product.name);
-    final productData = {...product.toFirestore(), 'ingresadoPor': enteredByName};
+
+    final productData = {
+      ...product.toFirestore(),
+      'ingresadoPor': enteredByName,
+    };
+
     await productRef.set(productData);
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);
-    final historyData = {...productData, 'fecha_salida': null};
+
+    // Corrected: productData already contains 'fecha_ingreso'. We only need to add 'fecha_salida'.
+    final historyData = {
+      ...productData,
+      'fecha_salida': null,
+    };
+
     await historyRef.set(historyData);
   }
 
@@ -111,12 +146,21 @@ class FirestoreService {
   }
 
   Stream<List<HistoryEntry>> getHistoryEntries() {
-    return _db.collection(_historyCollection).orderBy('fecha_ingreso', descending: true).snapshots().map((snapshot) {
+    return _db
+        .collection(_historyCollection)
+        .orderBy('fecha_ingreso', descending: true)
+        .snapshots()
+        .map((snapshot) {
       return snapshot.docs.map((doc) {
         try {
           return HistoryEntry.fromFirestore(doc);
         } catch (e, s) {
-          developer.log('Failed to parse history entry: ${doc.id}', name: 'FirestoreService.getHistoryEntries', error: e, stackTrace: s);
+          developer.log(
+            'Failed to parse history entry: ${doc.id}',
+            name: 'FirestoreService.getHistoryEntries',
+            error: e,
+            stackTrace: s,
+          );
           return null;
         }
       }).where((entry) => entry != null).cast<HistoryEntry>().toList();
@@ -125,8 +169,14 @@ class FirestoreService {
 
   Future<void> updateProduct(Product product) async {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
+
     final productRef = _db.collection(_productsCollection).doc(product.name);
-    final productData = {...product.toFirestore(), 'ingresadoPor': enteredByName};
+
+    final productData = {
+      ...product.toFirestore(),
+      'ingresadoPor': enteredByName,
+    };
+
     await productRef.update(productData);
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);
@@ -135,7 +185,7 @@ class FirestoreService {
       'categoria': product.category,
       'stock': product.quantity,
       'precio': product.price,
-      'ingresadoPor': enteredByName
+      'ingresadoPor': enteredByName,
     }, SetOptions(merge: true));
   }
 
@@ -151,7 +201,12 @@ class FirestoreService {
         try {
           return Product.fromFirestore(doc);
         } catch (e, s) {
-          developer.log('Failed to parse product: ${doc.id}', name: 'FirestoreService.getProducts', error: e, stackTrace: s);
+          developer.log(
+            'Failed to parse product: ${doc.id}',
+            name: 'FirestoreService.getProducts',
+            error: e,
+            stackTrace: s,
+          );
           return null;
         }
       }).where((product) => product != null).cast<Product>().toList();
@@ -163,13 +218,23 @@ class FirestoreService {
   }
 
   Future<Product?> getProductByCode(String code) async {
-    final querySnapshot = await _db.collection(_productsCollection).where('codigo', isEqualTo: code).limit(1).get();
+    final querySnapshot = await _db
+        .collection(_productsCollection)
+        .where('codigo', isEqualTo: code)
+        .limit(1)
+        .get();
+
     if (querySnapshot.docs.isNotEmpty) {
       final doc = querySnapshot.docs.first;
       try {
         return Product.fromFirestore(doc);
       } catch (e, s) {
-        developer.log('Failed to parse product from getProductByCode: ${doc.id}', name: 'FirestoreService.getProductByCode', error: e, stackTrace: s);
+        developer.log(
+          'Failed to parse product from getProductByCode: ${doc.id}',
+          name: 'FirestoreService.getProductByCode',
+          error: e,
+          stackTrace: s,
+        );
       }
     }
     return null;
@@ -181,7 +246,12 @@ class FirestoreService {
       try {
         return Product.fromFirestore(snapshot);
       } catch (e, s) {
-        developer.log('Failed to parse product from getProductByName: ${snapshot.id}', name: 'FirestoreService.getProductByName', error: e, stackTrace: s);
+        developer.log(
+          'Failed to parse product from getProductByName: ${snapshot.id}',
+          name: 'FirestoreService.getProductByName',
+          error: e,
+          stackTrace: s,
+        );
       }
     }
     return null;

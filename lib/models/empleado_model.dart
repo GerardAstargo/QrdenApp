@@ -3,32 +3,31 @@ import 'dart:developer' as developer;
 
 class Empleado {
   final String id;
-  final String path; // Full path to the document in Firestore
   final String nombre;
   final String apellido;
   final String email;
   final String cargo;
   final String rut;
   final String telefono;
-  final String? securityPin;
+  final String? securityPin; // Can be null
 
   Empleado({
     required this.id,
-    required this.path,
     required this.nombre,
     required this.apellido,
     required this.email,
     required this.cargo,
     required this.rut,
     required this.telefono,
-    this.securityPin,
+    this.securityPin, // Add to constructor as optional
   });
 
   String get nombreCompleto => '$nombre $apellido';
 
+  // Helper to quickly check if a PIN exists
   bool get hasPin => securityPin != null && securityPin!.isNotEmpty;
 
-  factory Empleado.fromMap(Map<String, dynamic> data, String documentId, String documentPath) {
+  factory Empleado.fromMap(Map<String, dynamic> data, String documentId) {
     String parsedCargo = 'Cargo no especificado';
     try {
       dynamic cargoData = data['cargo'];
@@ -40,26 +39,20 @@ class Empleado {
         } else {
           parsedCargo = cargoData;
         }
-      }
+      } 
     } catch (e) {
-      developer.log('Could not parse cargo: $e', name: 'EmpleadoModel');
-    }
-
-    String? pin;
-    if (data.containsKey('securityPin') && data['securityPin'] != null) {
-      pin = data['securityPin'].toString();
+        developer.log('Could not parse cargo: $e', name: 'EmpleadoModel');
     }
 
     return Empleado(
       id: documentId,
-      path: documentPath, // Store the full path
       nombre: data['nombre'] ?? 'Nombre no encontrado',
       apellido: data['apellido'] ?? '',
       email: data['email'] ?? 'Email no encontrado',
       cargo: parsedCargo,
       rut: data['rut'] ?? 'RUT no encontrado',
       telefono: data['telefono']?.toString() ?? 'Teléfono no encontrado',
-      securityPin: pin,
+      securityPin: data['securityPin'] as String?, // Read the security PIN
     );
   }
 
@@ -68,7 +61,7 @@ class Empleado {
       'nombre': nombre,
       'apellido': apellido,
       'email': email,
-      'cargo': cargo,
+      'cargo': cargo, 
       'rut': rut,
       'telefono': telefono,
       if (securityPin != null) 'securityPin': securityPin,
