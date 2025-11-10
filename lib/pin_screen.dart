@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:qrden/services/firestore_service.dart';
 import 'models/empleado_model.dart';
 import 'home_screen.dart';
-import 'login_screen.dart'; 
+import 'login_screen.dart';
+import 'dart:developer' as developer;
 
 class PinScreen extends StatefulWidget {
   final Empleado employee;
@@ -18,14 +20,48 @@ class _PinScreenState extends State<PinScreen> {
   final _pinController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _errorText;
+  bool _isCreatingPin = false;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  void _verifyPin() {
+  @override
+  void initState() {
+    super.initState();
+    _isCreatingPin = !widget.employee.hasPin;
+  }
+
+  Future<void> _handlePinAction() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
     setState(() {
       _errorText = null;
     });
 
-    if (_formKey.currentState!.validate()) {
-      if (_pinController.text == widget.employee.securityPin) {
+    final pin = _pinController.text;
+
+    if (_isCreatingPin) {
+      // Lógica para crear un nuevo PIN
+      try {
+        await _firestoreService.updateSecurityPin(widget.employee.id, pin);
+        developer.log('PIN creado con éxito para ${widget.employee.id}', name: 'PinScreen');
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡PIN creado con éxito!')),
+        );
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (Route<dynamic> route) => false,
+        );
+      } catch (e) {
+        developer.log('Error al crear el PIN: $e', name: 'PinScreen', error: e);
+        setState(() {
+          _errorText = 'No se pudo guardar el PIN. Inténtalo de nuevo.';
+        });
+      }
+    } else {
+      // Lógica para verificar el PIN existente
+      if (pin == widget.employee.securityPin) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
           (Route<dynamic> route) => false,
@@ -51,6 +87,12 @@ class _PinScreenState extends State<PinScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final title = _isCreatingPin ? 'Crea tu PIN de Seguridad' : 'Verificación de Seguridad';
+    final subtitle = _isCreatingPin
+        ? 'Hola, ${widget.employee.nombre}. Crea un PIN de 6 dígitos para proteger tu cuenta.'
+        : 'Hola, ${widget.employee.nombre}. Ingresa tu PIN de 6 dígitos.';
+    final buttonText = _isCreatingPin ? 'Guardar y Continuar' : 'Verificar e Ingresar';
+
     return Scaffold(
       backgroundColor: Colors.deepPurple.shade50,
       body: Center(
@@ -68,12 +110,12 @@ class _PinScreenState extends State<PinScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Verificación de Seguridad',
+                  title,
                   style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Hola, ${widget.employee.nombre}. Ingresa tu PIN de 6 dígitos.',
+                  subtitle,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyLarge?.copyWith(color: Colors.grey[700]),
                 ),
@@ -86,7 +128,7 @@ class _PinScreenState extends State<PinScreen> {
                   style: const TextStyle(fontSize: 24, letterSpacing: 18),
                   decoration: InputDecoration(
                     counterText: '',
-                    labelText: 'PIN de Seguridad',
+                    labelText: 'PIN de 6 dígitos',
                     errorText: _errorText,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -98,14 +140,14 @@ class _PinScreenState extends State<PinScreen> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) {
                     if (value == null || value.length != 6) {
-                      return 'El PIN debe contener 6 dígitos.';
+                      return 'El PIN debe contener exactamente 6 dígitos.';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 30),
                 ElevatedButton(
-                  onPressed: _verifyPin,
+                  onPressed: _handlePinAction,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 55),
                     backgroundColor: Colors.deepPurple,
@@ -114,7 +156,7 @@ class _PinScreenState extends State<PinScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Verificar e Ingresar'),
+                  child: Text(buttonText),
                 ),
                 const SizedBox(height: 16),
                 TextButton(

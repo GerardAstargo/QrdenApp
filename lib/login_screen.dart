@@ -6,6 +6,7 @@ import 'dart:developer' as developer;
 import 'home_screen.dart';
 import 'pin_screen.dart';
 import 'services/firestore_service.dart';
+import 'models/empleado_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,36 +39,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = userCredential.user;
       if (user != null) {
-        final employee = await _firestoreService.getEmployeeByEmail(user.email!);
-
-        if (employee != null) {
-          developer.log(
-            'Empleado encontrado: ${employee.nombre}, hasPin: ${employee.hasPin}, PIN: "${employee.securityPin}"',
-            name: 'LoginScreenDebug',
-          );
-        } else {
-          developer.log(
-            'No se encontró ningún empleado para el correo: ${user.email!}',
-            name: 'LoginScreenDebug',
-          );
-        }
+        final Empleado? employee = await _firestoreService.getEmployeeByEmail(user.email!);
 
         if (!mounted) return;
 
         if (employee != null) {
-          if (employee.hasPin) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => PinScreen(employee: employee)),
-            );
-          } else {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
-          }
+          // Redirige SIEMPRE a la pantalla del PIN si se encuentra al empleado.
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => PinScreen(employee: employee)),
+          );
         } else {
-           Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
+          // Si no hay perfil de empleado, va a la pantalla principal.
+          developer.log(
+            'No se encontró un perfil de empleado para ${user.email}, redirigiendo a HomeScreen.',
+            name: 'LoginScreenLogic',
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
         }
       }
     } on FirebaseAuthException {
