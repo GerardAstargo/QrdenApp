@@ -5,6 +5,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'home_screen.dart';
 import 'pin_screen.dart';
 import 'services/firestore_service.dart';
+import 'models/empleado_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,35 +37,37 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final user = userCredential.user;
-      if (user != null) {
-        final employee = await _firestoreService.getEmployeeByEmail(user.email!);
+      if (user != null && user.email != null) {
+        // The Firestore query might throw if the index is missing.
+        // The result can be null if the employee is not found.
+        final Empleado? employee = await _firestoreService.getEmployeeByEmail(user.email!);
 
+        // After an await, always check if the widget is still in the tree.
         if (!mounted) return; 
 
-        if (employee != null) {
-          if (employee.hasPin) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => PinScreen(employee: employee)),
-            );
-          } else {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
-          }
+        if (employee != null && employee.hasPin) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => PinScreen(employee: employee)),
+          );
         } else {
-           Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
+          // Navigate to home if employee is not found or has no PIN.
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
         }
       }
     } on FirebaseAuthException {
-      setState(() {
-        _errorMessage = 'Correo o contraseña incorrectos.';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Correo o contraseña incorrectos.';
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Ocurrió un error: ${e.toString()}';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Ocurrió un error. Revisa la consola de depuración.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
