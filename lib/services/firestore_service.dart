@@ -15,14 +15,9 @@ class FirestoreService {
 
   Future<String> _getEmployeeName(String email) async {
     try {
-      final employeeQuery = await _db.collection(_employeesCollection).get();
-      final cleanEmail = email.toLowerCase().trim(); // Clean input
-
-      for (var doc in employeeQuery.docs) {
-        final docEmail = (doc.data()['email'] as String? ?? '').toLowerCase().trim(); // Clean DB email
-        if (docEmail == cleanEmail) {
-          return doc.data()['nombre'] ?? email;
-        }
+      final employeeQuery = await _db.collection(_employeesCollection).where('email', isEqualTo: email.trim()).limit(1).get();
+      if(employeeQuery.docs.isNotEmpty) {
+        return employeeQuery.docs.first.data()['nombre'] ?? email;
       }
     } catch (e) {
       developer.log(
@@ -36,22 +31,18 @@ class FirestoreService {
 
   Future<Empleado?> getEmployeeByEmail(String email) async {
     try {
-      final querySnapshot = await _db.collection(_employeesCollection).get();
-      final cleanEmail = email.toLowerCase().trim(); // Trim and lowercase the input email
+      final cleanEmail = email.toLowerCase().trim();
+      final querySnapshot = await _db.collection(_employeesCollection).where('email', isEqualTo: cleanEmail).limit(1).get();
 
       developer.log('Attempting to find employee with clean email: "$cleanEmail"', name: 'FirestoreService');
 
-      for (final doc in querySnapshot.docs) {
-        final docData = doc.data();
-        final docEmail = (docData['email'] as String? ?? '').toLowerCase().trim(); // Trim and lowercase the database email
-
-        if (docEmail == cleanEmail) {
-          developer.log('SUCCESS: Match found for "$cleanEmail" in document ${doc.id}', name: 'FirestoreService');
-          return Empleado.fromMap(docData, doc.id);
-        }
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        developer.log('SUCCESS: Match found for "$cleanEmail" in document ${doc.id}', name: 'FirestoreService');
+        return Empleado.fromMap(doc.data(), doc.id);
+      } else {
+        developer.log('FAILURE: No match found for "$cleanEmail" using a direct query.', name: 'FirestoreService');
       }
-
-      developer.log('FAILURE: No match found for "$cleanEmail" after checking all ${querySnapshot.docs.length} documents.', name: 'FirestoreService');
 
     } catch (e, s) {
       developer.log(
