@@ -83,7 +83,6 @@ class FirestoreService {
   Future<void> deleteSecurityPin(String employeeId) async {
     try {
       final employeeRef = _db.collection(_employeesCollection).doc(employeeId);
-      // Usa FieldValue.delete() para eliminar el campo del documento.
       await employeeRef.update({'securityPin': FieldValue.delete()});
       developer.log('Successfully deleted PIN for employee $employeeId', name: 'FirestoreService');
     } catch (e, s) {
@@ -126,21 +125,33 @@ class FirestoreService {
 
   Future<void> addProduct(Product product) async {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
+
     final productRef = _db.collection(_productsCollection).doc(product.name);
+
+    // The product model uses 'fechaingreso', so we use its map directly.
     final productData = {
       ...product.toFirestore(),
       'ingresadoPor': enteredByName,
     };
-    await productRef.set(productData);
+    await productRef.set(productData, SetOptions(merge: true));
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);
-    final historyData = {
-      ...productData,
-      'fecha_salida': null,
-    };
 
+    // The history model expects 'fecha_ingreso'. We create the map manually to ensure compliance.
+    final historyData = {
+      'nombreproducto': product.name,
+      'categoria': product.category,
+      'stock': product.quantity,
+      'precio': product.price,
+      'codigo': product.code,
+      'ingresadoPor': enteredByName,
+      'fecha_ingreso': product.fechaIngreso ?? Timestamp.now(), // Correct key for history
+      'fecha_salida': null,
+      'numeroEstante': product.numeroEstante,
+    };
     await historyRef.set(historyData, SetOptions(merge: true));
   }
+
 
   Future<void> deleteProduct(String productName) async {
     await _db.collection(_productsCollection).doc(productName).delete();
@@ -161,7 +172,7 @@ class FirestoreService {
   Stream<List<HistoryEntry>> getHistoryEntries() {
     return _db
         .collection(_historyCollection)
-        .orderBy('fecha_ingreso', descending: true)
+        .orderBy('fecha_ingreso', descending: true) // This now correctly matches the field name
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -184,22 +195,23 @@ class FirestoreService {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
 
     final productRef = _db.collection(_productsCollection).doc(product.name);
-
     final productData = {
       ...product.toFirestore(),
       'ingresadoPor': enteredByName,
     };
-
     await productRef.update(productData);
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);
-    await historyRef.set({
+    // Also fix the update to be consistent
+    final historyUpdateData = {
       'nombreproducto': product.name,
       'categoria': product.category,
       'stock': product.quantity,
       'precio': product.price,
       'ingresadoPor': enteredByName,
-    }, SetOptions(merge: true));
+      'numeroEstante': product.numeroEstante,
+    };
+    await historyRef.set(historyUpdateData, SetOptions(merge: true));
   }
 
   Future<void> updateStock(String productName, int newQuantity) async {
