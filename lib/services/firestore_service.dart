@@ -126,24 +126,20 @@ class FirestoreService {
 
   Future<void> addProduct(Product product) async {
     final enteredByName = await _getEmployeeName(product.enteredBy ?? '');
-
     final productRef = _db.collection(_productsCollection).doc(product.name);
-
     final productData = {
       ...product.toFirestore(),
       'ingresadoPor': enteredByName,
     };
-
     await productRef.set(productData);
 
     final historyRef = _db.collection(_historyCollection).doc(product.name);
-
     final historyData = {
       ...productData,
       'fecha_salida': null,
     };
 
-    await historyRef.set(historyData);
+    await historyRef.set(historyData, SetOptions(merge: true));
   }
 
   Future<void> deleteProduct(String productName) async {
